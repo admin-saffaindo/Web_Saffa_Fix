@@ -1,40 +1,12 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, ArrowRight, MessageCircle, ZoomIn, ZoomOut, RotateCcw, Maximize2, X } from 'lucide-react';
+import React from 'react';
+import { motion } from 'motion/react';
+import { Sparkles, ArrowRight, MessageCircle } from 'lucide-react';
 
 interface HeroProps {
   onOpenOrderModal: () => void;
 }
 
 export default function Hero({ onOpenOrderModal }: HeroProps) {
-  const [zoomScale, setZoomScale] = useState(1.0);
-  const [showLightbox, setShowLightbox] = useState(false);
-  const [lightboxScale, setLightboxScale] = useState(1.0);
-
-  const handleZoomIn = () => {
-    setZoomScale(prev => Math.min(prev + 0.25, 3.0));
-  };
-
-  const handleZoomOut = () => {
-    setZoomScale(prev => Math.max(prev - 0.25, 0.75));
-  };
-
-  const handleReset = () => {
-    setZoomScale(1.0);
-  };
-
-  const handleLightboxZoomIn = () => {
-    setLightboxScale(prev => Math.min(prev + 0.25, 4.0));
-  };
-
-  const handleLightboxZoomOut = () => {
-    setLightboxScale(prev => Math.max(prev - 0.25, 0.75));
-  };
-
-  const handleLightboxReset = () => {
-    setLightboxScale(1.0);
-  };
-
   const scrollToMenu = () => {
     const element = document.getElementById('menu');
     if (element) {
@@ -155,80 +127,14 @@ export default function Hero({ onOpenOrderModal }: HeroProps) {
             <div className="absolute inset-0 bg-gradient-to-tr from-pink-100 to-emerald-50 rounded-[2.5rem] -rotate-3 scale-102 -z-10 border border-pink-50" />
             
             <div className="bg-white p-4 rounded-[2.5rem] shadow-xl border border-pink-50 relative overflow-hidden group">
-              {/* Zoom Instruction Tip */}
-              <div className="absolute top-6 left-6 bg-slate-900/70 backdrop-blur-md text-white text-[10px] font-bold px-2.5 py-1 rounded-full z-20 pointer-events-none transition-opacity duration-300 group-hover:opacity-100 opacity-80 flex items-center gap-1.5">
-                <span>🔍</span>
-                <span>Cubit / Geser untuk Zoom</span>
-              </div>
-
-              {/* Image Frame with overflow hidden to crop zoomed images */}
+              {/* Image Frame with hover scaling effect */}
               <div className="w-full h-auto max-h-[380px] sm:max-h-[480px] overflow-hidden rounded-3xl bg-pink-50/10 flex items-center justify-center relative select-none">
-                <motion.img
+                <img
                   src="https://lh3.googleusercontent.com/d/1fZsmc7XAx2kQYECe7NcwzynqmZPCYLNc"
                   alt="Saffa Bubur Bayi Premium"
                   referrerPolicy="no-referrer"
-                  drag={zoomScale > 1}
-                  dragConstraints={{
-                    left: -200 * (zoomScale - 1),
-                    right: 200 * (zoomScale - 1),
-                    top: -200 * (zoomScale - 1),
-                    bottom: 200 * (zoomScale - 1)
-                  }}
-                  animate={{ scale: zoomScale }}
-                  className={`w-full h-auto max-h-[380px] sm:max-h-[480px] object-contain rounded-3xl select-none transition-transform duration-200 ${
-                    zoomScale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
-                  }`}
+                  className="w-full h-auto max-h-[380px] sm:max-h-[480px] object-contain rounded-3xl select-none transition-transform duration-700 group-hover:scale-102"
                 />
-              </div>
-
-              {/* Floating Zoom Controls Centered on the Bottom */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md px-4 py-2 rounded-full border border-slate-200/60 shadow-lg flex items-center gap-3 z-30 select-none">
-                <button
-                  type="button"
-                  onClick={handleZoomOut}
-                  disabled={zoomScale <= 0.75}
-                  className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
-                  title="Perkecil (Zoom Out)"
-                  id="btn-hero-zoom-out"
-                >
-                  <ZoomOut size={16} />
-                </button>
-                <span className="text-xs font-mono font-bold text-slate-700 min-w-[36px] text-center">
-                  {Math.round(zoomScale * 100)}%
-                </span>
-                <button
-                  type="button"
-                  onClick={handleZoomIn}
-                  disabled={zoomScale >= 3.0}
-                  className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
-                  title="Perbesar (Zoom In)"
-                  id="btn-hero-zoom-in"
-                >
-                  <ZoomIn size={16} />
-                </button>
-                <div className="w-[1px] h-4 bg-slate-200" />
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  disabled={zoomScale === 1.0}
-                  className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 active:bg-slate-200 disabled:opacity-40 transition-colors cursor-pointer"
-                  title="Atur Ulang"
-                  id="btn-hero-zoom-reset"
-                >
-                  <RotateCcw size={15} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLightboxScale(1.0);
-                    setShowLightbox(true);
-                  }}
-                  className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition-colors cursor-pointer"
-                  title="Layar Penuh"
-                  id="btn-hero-zoom-fullscreen"
-                >
-                  <Maximize2 size={15} />
-                </button>
               </div>
             </div>
 
@@ -243,93 +149,6 @@ export default function Hero({ onOpenOrderModal }: HeroProps) {
 
         </div>
       </div>
-
-      {/* Dynamic Lightbox Modal */}
-      <AnimatePresence>
-        {showLightbox && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-4 select-none"
-            id="hero-image-lightbox"
-          >
-            {/* Close button */}
-            <button
-              type="button"
-              onClick={() => setShowLightbox(false)}
-              className="absolute top-6 right-6 p-3 rounded-full bg-white/10 hover:bg-white/20 active:bg-white/30 text-white transition-all cursor-pointer border border-white/10 shadow-lg"
-              title="Tutup"
-              id="btn-lightbox-close"
-            >
-              <X size={20} />
-            </button>
-
-            {/* Instruction tooltip */}
-            <div className="absolute top-6 left-6 text-xs text-white/60 font-medium">
-              💡 Geser gambar untuk melihat detail
-            </div>
-
-            {/* Interactive Image Frame */}
-            <div className="relative w-full max-w-4xl h-[70vh] flex items-center justify-center overflow-hidden rounded-3xl border border-white/5 bg-slate-900/30">
-              <motion.img
-                src="https://lh3.googleusercontent.com/d/1fZsmc7XAx2kQYECe7NcwzynqmZPCYLNc"
-                alt="Saffa Bubur Bayi Premium Full"
-                referrerPolicy="no-referrer"
-                drag={lightboxScale > 1}
-                dragConstraints={{
-                  left: -300 * (lightboxScale - 1),
-                  right: 300 * (lightboxScale - 1),
-                  top: -300 * (lightboxScale - 1),
-                  bottom: 300 * (lightboxScale - 1)
-                }}
-                animate={{ scale: lightboxScale }}
-                className={`max-w-full max-h-full object-contain select-none transition-transform duration-200 ${
-                  lightboxScale > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
-                }`}
-              />
-            </div>
-
-            {/* Lightbox Controls */}
-            <div className="mt-6 bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 shadow-xl flex items-center gap-5">
-              <button
-                type="button"
-                onClick={handleLightboxZoomOut}
-                disabled={lightboxScale <= 0.75}
-                className="p-2 rounded-lg text-white hover:bg-white/10 active:bg-white/20 disabled:opacity-40 transition-colors cursor-pointer"
-                title="Perkecil (Zoom Out)"
-                id="btn-lightbox-zoom-out"
-              >
-                <ZoomOut size={18} />
-              </button>
-              <span className="text-sm font-mono font-bold text-white min-w-[45px] text-center">
-                {Math.round(lightboxScale * 100)}%
-              </span>
-              <button
-                type="button"
-                onClick={handleLightboxZoomIn}
-                disabled={lightboxScale >= 4.0}
-                className="p-2 rounded-lg text-white hover:bg-white/10 active:bg-white/20 disabled:opacity-40 transition-colors cursor-pointer"
-                title="Perbesar (Zoom In)"
-                id="btn-lightbox-zoom-in"
-              >
-                <ZoomIn size={18} />
-              </button>
-              <div className="w-[1px] h-5 bg-white/20" />
-              <button
-                type="button"
-                onClick={handleLightboxReset}
-                disabled={lightboxScale === 1.0}
-                className="p-2 rounded-lg text-white hover:bg-white/10 active:bg-white/20 disabled:opacity-40 transition-colors cursor-pointer"
-                title="Atur Ulang"
-                id="btn-lightbox-zoom-reset"
-              >
-                <RotateCcw size={16} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </section>
   );
 }
