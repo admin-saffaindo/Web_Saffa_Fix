@@ -12,8 +12,7 @@ interface OrderModalProps {
 }
 
 export default function OrderModal({ isOpen, onClose, initialProduct, initialOutlet }: OrderModalProps) {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState<number>(1);
+  const [cart, setCart] = useState<Record<string, number>>({});
   const [selectedOutlet, setSelectedOutlet] = useState<Outlet | null>(null);
   const [selectedCity, setSelectedCity] = useState<'Tanjungpinang' | 'Bintan' | null>(null);
   const [notes, setNotes] = useState<string>('');
@@ -26,31 +25,40 @@ export default function OrderModal({ isOpen, onClose, initialProduct, initialOut
 
   // Set initial state when modal opens
   useEffect(() => {
-    if (initialProduct) {
-      setSelectedProduct(initialProduct);
-    } else if (PRODUCTS.length > 0) {
-      setSelectedProduct(PRODUCTS[0]);
-    }
-    setQuantity(1);
-    setNotes('');
-    setCustomerName('');
-    setCustomerWhatsapp('');
-
-    // Pre-select outlet and city if initialOutlet is provided
-    if (initialOutlet) {
-      setSelectedOutlet(initialOutlet);
-      if (initialOutlet.region === 'Tanjungpinang' || initialOutlet.region === 'Bintan') {
-        setSelectedCity(initialOutlet.region as 'Tanjungpinang' | 'Bintan');
+    if (isOpen) {
+      const initialCart: Record<string, number> = {};
+      if (initialProduct) {
+        initialCart[initialProduct.id] = 1;
+      } else if (PRODUCTS.length > 0) {
+        initialCart[PRODUCTS[0].id] = 1;
       }
-    } else {
-      setSelectedOutlet(null);
-      setSelectedCity(null);
+      setCart(initialCart);
+      setNotes('');
+      setCustomerName('');
+      setCustomerWhatsapp('');
+
+      // Pre-select outlet and city if initialOutlet is provided
+      if (initialOutlet) {
+        setSelectedOutlet(initialOutlet);
+        if (initialOutlet.region === 'Tanjungpinang' || initialOutlet.region === 'Bintan') {
+          setSelectedCity(initialOutlet.region as 'Tanjungpinang' | 'Bintan');
+        }
+      } else {
+        setSelectedOutlet(null);
+        setSelectedCity(null);
+      }
     }
   }, [initialProduct, initialOutlet, isOpen]);
 
-  if (!isOpen || !selectedProduct) return null;
+  if (!isOpen) return null;
 
-  const totalPrice = selectedProduct.price * quantity;
+  const selectedItems = PRODUCTS.map(product => ({
+    product,
+    quantity: cart[product.id] || 0
+  })).filter(item => item.quantity > 0);
+
+  const totalPrice = selectedItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const totalQty = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
 
   // Filter outlets based on selected city and search query
   const filteredOutlets = OUTLETS.filter(outlet => {
@@ -62,19 +70,22 @@ export default function OrderModal({ isOpen, onClose, initialProduct, initialOut
 
   const handleOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedOutlet || !selectedProduct || !customerName.trim() || !customerWhatsapp.trim() || isSubmitting) return;
+    if (!selectedOutlet || selectedItems.length === 0 || !customerName.trim() || !customerWhatsapp.trim() || isSubmitting) return;
 
     setIsSubmitting(true);
     const createdAtStr = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
     const orderId = 'SF-' + Math.random().toString(36).substr(2, 9).toUpperCase();
 
+    const productSummary = selectedItems.map(item => `${item.product.name} (${item.quantity} ${item.product.unit})`).join(', ');
+    const quantitySummary = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+
     const orderData = {
       id: orderId,
       customerName: customerName.trim(),
       customerWhatsapp: '0' + customerWhatsapp.trim(),
-      productId: selectedProduct.id,
-      productName: selectedProduct.name,
-      quantity: quantity,
+      productId: selectedItems.map(i => i.product.id).join(', '),
+      productName: productSummary,
+      quantity: quantitySummary,
       totalPrice: totalPrice,
       outletId: selectedOutlet.id,
       outletName: selectedOutlet.name,
@@ -114,6 +125,19 @@ export default function OrderModal({ isOpen, onClose, initialProduct, initialOut
       maximumFractionDigits: 0
     }).format(totalPrice);
 
+    const itemDetailsText = selectedItems.map((item, index) => {
+      const itemSubtotal = item.product.price * item.quantity;
+      const formattedSubtotal = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        maximumFractionDigits: 0
+      }).format(itemSubtotal);
+      
+      return `${index + 1}. *${item.product.name}* (${item.product.recommendedAge})
+   └  Jumlah: *${item.quantity} ${item.product.unit}*
+   └  Subtotal: *${formattedSubtotal}*`;
+    }).join('\n\n');
+
     const message = `Halo Saffa Bubur Bayi (${selectedOutlet.name})! 👋
 
 Saya ingin memesan MPASI Premium Saffa untuk buah hati saya:
@@ -122,11 +146,10 @@ Saya ingin memesan MPASI Premium Saffa untuk buah hati saya:
 👤 Nama: *${customerName.trim()}*
 📞 WhatsApp: *0${customerWhatsapp.trim()}*
 
-*Detail Pesanan:*
-📌 Produk: *${selectedProduct.name}*
-🔢 Jumlah: *${quantity} ${selectedProduct.unit}*
-💰 Total Harga: *${formattedPrice}*
-👶 Rentang Usia: *${selectedProduct.recommendedAge}*
+*Rincian Pesanan:*
+${itemDetailsText}
+
+*Total Pembayaran:* *${formattedPrice}*
 
 ${notes ? `*Catatan Tambahan:* \n_"${notes}"_` : '*Catatan Tambahan:* \n_Tidak ada catatan tambahan_'}
 
@@ -233,13 +256,19 @@ Mohon konfirmasi pesanan dan ketersediaan stoknya ya kak. Terima kasih! 😊`;
               </label>
               <div className="grid grid-cols-2 gap-2" id="modal-product-selector-grid">
                 {PRODUCTS.map((p) => {
-                  const isSelected = selectedProduct.id === p.id;
+                  const qty = cart[p.id] || 0;
+                  const isSelected = qty > 0;
                   const isLastItem = p.id === 'silky-pudding';
                   return (
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => setSelectedProduct(p)}
+                      onClick={() => {
+                        setCart(prev => ({
+                          ...prev,
+                          [p.id]: (prev[p.id] || 0) + 1
+                        }));
+                      }}
                       className={`relative p-2.5 rounded-xl border transition-all text-left cursor-pointer flex flex-col justify-between h-[84px] select-none ${
                         isSelected
                           ? 'border-pink-500 bg-pink-50/20 ring-2 ring-pink-500/25 shadow-sm'
@@ -271,102 +300,117 @@ Mohon konfirmasi pesanan dan ketersediaan stoknya ya kak. Terima kasih! 😊`;
                         {p.unit === 'porsi' ? 'Hangat & lezat' : p.unit === 'pack' ? 'Lauk sehat harian' : 'Manis lembut segar'}
                       </p>
                       
-                      {isSelected ? (
-                        <div 
-                          className="absolute bottom-1.5 right-1.5 flex items-center bg-pink-500 text-white rounded-lg p-0.5 gap-1 text-[10px] font-extrabold shadow-sm z-10"
-                          onClick={(e) => e.stopPropagation()}
-                          id={`qty-selector-inline-${p.id}`}
+                      <div 
+                        className={`absolute bottom-1.5 right-1.5 flex items-center rounded-lg p-0.5 gap-1 text-[10px] font-extrabold shadow-sm transition-all z-10 ${
+                          isSelected 
+                            ? 'bg-pink-500 text-white' 
+                            : 'bg-slate-200 text-slate-500'
+                        }`}
+                        onClick={(e) => e.stopPropagation()}
+                        id={`qty-selector-inline-${p.id}`}
+                      >
+                        <button
+                          type="button"
+                          disabled={qty === 0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCart(prev => {
+                              const newCart = { ...prev };
+                              if (qty <= 1) {
+                                delete newCart[p.id];
+                              } else {
+                                newCart[p.id] = qty - 1;
+                              }
+                              return newCart;
+                            });
+                          }}
+                          className={`w-4 h-4 flex items-center justify-center rounded-md transition-all font-black text-center ${
+                            qty === 0 
+                              ? 'opacity-35 cursor-not-allowed text-slate-400' 
+                              : isSelected 
+                                ? 'hover:bg-pink-600 text-white' 
+                                : 'hover:bg-slate-300 text-slate-600'
+                          }`}
+                          title="Kurangi"
                         >
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setQuantity(q => Math.max(1, q - 1));
-                            }}
-                            className="w-4 h-4 flex items-center justify-center hover:bg-pink-600 rounded-md transition-colors font-black text-center"
-                            title="Kurangi"
-                          >
-                            -
-                          </button>
-                          <span className="min-w-[12px] text-center font-display leading-none">{quantity}</span>
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setQuantity(q => q + 1);
-                            }}
-                            className="w-4 h-4 flex items-center justify-center hover:bg-pink-600 rounded-md transition-colors font-black text-center"
-                            title="Tambah"
-                          >
-                            +
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="absolute bottom-2 right-2 text-[8px] text-slate-400 font-bold bg-slate-100 px-1.5 py-0.5 rounded-md">
-                          Pilih
-                        </span>
-                      )}
+                          -
+                        </button>
+                        <span className="min-w-[12px] text-center font-display leading-none">{qty}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCart(prev => ({
+                              ...prev,
+                              [p.id]: (prev[p.id] || 0) + 1
+                            }));
+                          }}
+                          className={`w-4 h-4 flex items-center justify-center rounded-md transition-all font-black text-center ${
+                            isSelected 
+                              ? 'hover:bg-pink-600 text-white' 
+                              : 'hover:bg-slate-300 text-slate-600'
+                          }`}
+                          title="Tambah"
+                        >
+                          +
+                        </button>
+                      </div>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Product Card Details */}
-            <div className="flex gap-4 p-3 bg-pink-50/50 rounded-2xl border border-pink-100/50">
-              <img
-                src={selectedProduct.image}
-                alt={selectedProduct.name}
-                className="w-16 h-16 rounded-xl object-cover border border-pink-100 bg-white"
-                referrerPolicy="no-referrer"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                    {selectedProduct.recommendedAge}
-                  </span>
-                  <span className="text-[10px] text-slate-400">
-                    Saffa Quality
-                  </span>
+            {/* Step 3: Selected Items Breakdown */}
+            <div className="space-y-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                3. Rincian Pilihan Menu Anda
+              </label>
+              
+              {selectedItems.length === 0 ? (
+                <div className="bg-amber-50/50 border border-amber-100/50 rounded-2xl p-4 flex gap-3 items-center" id="no-item-alert">
+                  <AlertCircle className="text-amber-500 shrink-0" size={18} />
+                  <p className="text-[11px] text-amber-800 font-semibold leading-relaxed">
+                    Silakan pilih minimal 1 menu MPASI di atas untuk melanjutkan pemesanan.
+                  </p>
                 </div>
-                <h4 className="font-display font-bold text-sm text-slate-800 truncate">
-                  {selectedProduct.name}
-                </h4>
-                <p className="text-xs text-pink-500 font-bold mt-0.5">
-                  Rp{selectedProduct.price.toLocaleString('id-ID')} <span className="text-slate-400 font-normal">/ {selectedProduct.unit}</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Step 2: Quantity Counter */}
-            <div className="flex items-center justify-between p-3 bg-slate-50 rounded-2xl border border-slate-100">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                  3. Atur Jumlah Porsi
-                </label>
-                <p className="text-[11px] text-slate-400">Sesuaikan dengan porsi makan anak</p>
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 font-bold hover:border-pink-400 hover:text-pink-500 transition-colors cursor-pointer"
-                  id="decrease-qty-btn"
-                >
-                  -
-                </button>
-                <span className="font-display font-bold text-base text-slate-800 w-6 text-center">
-                  {quantity}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setQuantity(q => q + 1)}
-                  className="w-9 h-9 flex items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 font-bold hover:border-pink-400 hover:text-pink-500 transition-colors cursor-pointer"
-                  id="increase-qty-btn"
-                >
-                  +
-                </button>
-              </div>
+              ) : (
+                <div className="space-y-2" id="selected-items-breakdown-list">
+                  {selectedItems.map(({ product, quantity }) => (
+                    <div 
+                      key={product.id}
+                      className="flex gap-3 p-3 bg-pink-50/30 rounded-2xl border border-pink-100/40 items-center justify-between"
+                    >
+                      <div className="flex gap-3 items-center min-w-0 flex-1">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-10 h-10 rounded-lg object-cover border border-pink-100 bg-white"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="min-w-0">
+                          <h4 className="font-display font-bold text-[11px] text-slate-800 truncate">
+                            {product.name}
+                          </h4>
+                          <p className="text-[10px] text-slate-400">
+                            Rp{product.price.toLocaleString('id-ID')} / {product.unit} • <span className="font-semibold text-emerald-600">{product.recommendedAge}</span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Quantity & Subtotal */}
+                      <div className="text-right shrink-0">
+                        <p className="font-display font-extrabold text-[11px] text-pink-600">
+                          Rp{(product.price * quantity).toLocaleString('id-ID')}
+                        </p>
+                        <p className="text-[10px] text-slate-500 font-bold">
+                          {quantity} {product.unit}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Step 3: Outlet Finder */}
@@ -540,17 +584,19 @@ Mohon konfirmasi pesanan dan ketersediaan stoknya ya kak. Terima kasih! 😊`;
                 <p className="font-display font-extrabold text-xl text-pink-600">
                   Rp{totalPrice.toLocaleString('id-ID')}
                 </p>
-                <p className="text-[10px] text-slate-400">{quantity}x {selectedProduct.name}</p>
+                <p className="text-[10px] text-slate-500 font-semibold">
+                  {selectedItems.map(item => `${item.quantity}x ${item.product.name.replace(' Saffa', '')}`).join(' + ')}
+                </p>
               </div>
             </div>
 
             {/* Button */}
             <button
               onClick={handleOrderSubmit}
-              disabled={!selectedOutlet || !customerName.trim() || !customerWhatsapp.trim() || isSubmitting}
+              disabled={!selectedOutlet || selectedItems.length === 0 || !customerName.trim() || !customerWhatsapp.trim() || isSubmitting}
               type="button"
               className={`w-full py-4 px-6 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 transition-all active:scale-98 cursor-pointer ${
-                selectedOutlet && customerName.trim() && customerWhatsapp.trim() && !isSubmitting
+                selectedOutlet && selectedItems.length > 0 && customerName.trim() && customerWhatsapp.trim() && !isSubmitting
                   ? 'bg-emerald-500 hover:bg-emerald-600 text-white transform hover:-translate-y-0.5'
                   : 'bg-slate-300 text-slate-500 cursor-not-allowed'
               }`}
