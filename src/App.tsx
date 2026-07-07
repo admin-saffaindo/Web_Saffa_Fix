@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence } from 'motion/react';
 import Header from './components/Header';
 import Hero from './components/Hero';
 import Keunggulan from './components/Keunggulan';
@@ -11,9 +12,11 @@ import Footer from './components/Footer';
 import OrderModal from './components/OrderModal';
 import FloatingCTA from './components/FloatingCTA';
 import AdminDashboard from './components/AdminDashboard';
+import SplashIntro from './components/SplashIntro';
 import { Product, Outlet } from './data';
 
 export default function App() {
+  const [showSplash, setShowSplash] = useState(true);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedOutlet, setSelectedOutlet] = useState<Outlet | null>(null);
@@ -89,6 +92,13 @@ export default function App() {
         initialProduct={selectedProduct}
         initialOutlet={selectedOutlet}
       />
+
+      {/* Saffa Splash Screen Intro with 3s Countdown & X Skip button */}
+      <AnimatePresence>
+        {showSplash && (
+          <SplashIntro onComplete={() => setShowSplash(false)} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

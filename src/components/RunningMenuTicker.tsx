@@ -63,7 +63,12 @@ export default function RunningMenuTicker() {
     todayMenu.pudding
   );
 
-  const getDayNameDisplay = () => {
+  const getDayNameDisplay = (): string => {
+    if (!todayMenu || !todayMenu.dayName) {
+      const indonesianDays = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const dayIndex = new Date().getDay();
+      return indonesianDays[dayIndex];
+    }
     return todayMenu.dayName === 'Minggu' ? 'Ahad' : todayMenu.dayName;
   };
 

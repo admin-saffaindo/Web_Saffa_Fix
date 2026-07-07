@@ -68,8 +68,12 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
   };
 
   // Helper to safely display Day Name (map Minggu to Ahad if needed, though already mapped in data)
-  const getDayNameDisplay = () => {
-    if (!activeMenu) return '';
+  const getDayNameDisplay = (): string => {
+    if (!activeMenu || !activeMenu.dayName) {
+      const indonesianDays = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const dayIndex = new Date().getDay();
+      return indonesianDays[dayIndex];
+    }
     return activeMenu.dayName === 'Minggu' ? 'Ahad' : activeMenu.dayName;
   };
 
