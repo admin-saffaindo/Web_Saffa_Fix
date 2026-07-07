@@ -67,7 +67,7 @@ export default function RunningMenuTicker() {
     return todayMenu.dayName === 'Minggu' ? 'Ahad' : todayMenu.dayName;
   };
 
-  // Construct text for the scrolling ticker
+  // Construct text for the scrolling ticker (Desktop)
   const buildTickerText = () => {
     if (!hasMenuContent) {
       return `✨ MENU HARI ${getDayNameDisplay().toUpperCase()} ${todayMenu.dateLabel ? `(${todayMenu.dateLabel})` : ''}: Menu hari ini sedang disiapkan, Bunda! Hubungi outlet terdekat untuk info menu custom lezat hari ini. Saffa MPASI selalu segar setiap hari! 👶🍼 • `;
@@ -83,30 +83,105 @@ export default function RunningMenuTicker() {
     return `🔥 MENU TERSEDIA HARI ${getDayNameDisplay().toUpperCase()} ${todayMenu.dateLabel ? `(${todayMenu.dateLabel})` : ''}:  ${items.join('  •  ')}  •  🏡 Dapatkan langsung di 11 outlet Saffa terdekat Tanjungpinang & Bintan! 🏡 • `;
   };
 
+  // Construct split-text for Mobile (Row 1: Bubur & Nasi Tim)
+  const buildMobileRow1Text = () => {
+    const dayLabel = todayMenu.dateLabel ? `(${todayMenu.dateLabel})` : '';
+    if (!hasMenuContent) {
+      return `✨ MENU HARI ${getDayNameDisplay().toUpperCase()} ${dayLabel}: Menu sedang disiapkan Bunda! 👶🍼 • `;
+    }
+    const items = [];
+    if (todayMenu.menu1) items.push(`🥣 Bubur 1: ${todayMenu.menu1}`);
+    if (todayMenu.menu2) items.push(`🥣 Bubur 2: ${todayMenu.menu2}`);
+    if (todayMenu.nasiTim) items.push(`🍲 Nasi Tim: ${todayMenu.nasiTim}`);
+    
+    return `✨ MENU ${getDayNameDisplay().toUpperCase()} ${dayLabel} ➡️ ${items.join('  •  ')}  •  `;
+  };
+
+  // Construct split-text for Mobile (Row 2: Lauk, Pudding, Outlets)
+  const buildMobileRow2Text = () => {
+    if (!hasMenuContent) {
+      return `🏡 Hubungi outlet Saffa terdekat untuk info custom menu lezat hari ini! 💕 • `;
+    }
+    const items = [];
+    if (todayMenu.anekaLauk) items.push(`🐟 Lauk: ${todayMenu.anekaLauk}`);
+    if (todayMenu.pudding) items.push(`🍮 Puding: ${todayMenu.pudding}`);
+    items.push(`🏡 Dapatkan di 11 outlet Saffa terdekat Tanjungpinang & Bintan! 🏡`);
+    
+    return `🔥 PELENGKAP & OUTLET ➡️ ${items.join('  •  ')}  •  `;
+  };
+
   const tickerText = buildTickerText();
-  // Duplicate the text multiple times to ensure seamless infinite looping on wider displays
   const repeatedText = `${tickerText} ${tickerText} ${tickerText} ${tickerText}`;
 
+  const row1Text = buildMobileRow1Text();
+  const repeatedRow1 = `${row1Text} ${row1Text} ${row1Text} ${row1Text}`;
+
+  const row2Text = buildMobileRow2Text();
+  const repeatedRow2 = `${row2Text} ${row2Text} ${row2Text} ${row2Text}`;
+
   return (
-    <div 
-      className="bg-gradient-to-r from-pink-500 to-rose-400 text-white py-2.5 overflow-hidden relative border-y border-pink-600/20 shadow-xs z-30 select-none"
-      id="today-running-menu-ticker"
-    >
-      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-pink-500 to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-rose-400 to-transparent z-10 pointer-events-none" />
-      
-      <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest bg-white/25 backdrop-blur-md px-3 py-1 rounded-full shrink-0 animate-pulse border border-white/20">
-          <Sparkles size={11} className="text-amber-200 fill-amber-200" />
-          <span>MENU HARI INI ({getDayNameDisplay()})</span>
-        </div>
+    <>
+      {/* 1. Desktop version (visible on md: and up) */}
+      <div 
+        className="hidden md:block bg-gradient-to-r from-pink-500 to-rose-400 text-white py-2.5 overflow-hidden relative border-y border-pink-600/20 shadow-xs z-30 select-none"
+        id="today-running-menu-ticker-desktop"
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-pink-500 to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-rose-400 to-transparent z-10 pointer-events-none" />
         
-        <div className="overflow-hidden whitespace-nowrap ml-4 flex-1 relative flex items-center h-5">
-          <div className="animate-marquee whitespace-nowrap flex items-center text-xs font-bold tracking-wide">
-            {repeatedText}
+        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest bg-white/25 backdrop-blur-md px-3 py-1 rounded-full shrink-0 animate-pulse border border-white/20">
+            <Sparkles size={11} className="text-amber-200 fill-amber-200" />
+            <span>MENU HARI INI ({getDayNameDisplay()})</span>
+          </div>
+          
+          <div className="overflow-hidden whitespace-nowrap ml-4 flex-1 relative flex items-center h-5">
+            <div className="animate-marquee whitespace-nowrap flex items-center text-xs font-bold tracking-wide">
+              {repeatedText}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* 2. Mobile version (visible below md) - Larger font and 2 rows */}
+      <div 
+        className="block md:hidden bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600 text-white py-3 overflow-hidden relative border-b border-pink-600/30 shadow-md z-30 select-none"
+        id="today-running-menu-ticker-mobile"
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-pink-500 to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-pink-600 to-transparent z-10 pointer-events-none" />
+        
+        <div className="flex flex-col gap-2.5">
+          {/* Row 1: Bubur & Nasi Tim */}
+          <div className="flex items-center px-4 gap-2.5">
+            <div className="flex items-center gap-1 font-extrabold text-[10px] uppercase tracking-wider bg-white/25 backdrop-blur-md px-2 py-1 rounded-md shrink-0 border border-white/10 shadow-xs">
+              <Sparkles size={10} className="text-amber-200 fill-amber-200 shrink-0" />
+              <span>{getDayNameDisplay().toUpperCase()}</span>
+            </div>
+            <div className="overflow-hidden whitespace-nowrap flex-1 relative flex items-center h-6">
+              <div className="animate-marquee whitespace-nowrap flex items-center text-[13px] sm:text-sm font-black tracking-wide">
+                {repeatedRow1}
+              </div>
+            </div>
+          </div>
+
+          {/* Dotted separator for professional touch */}
+          <div className="border-t border-dashed border-white/15 mx-4" />
+
+          {/* Row 2: Lauk, Pudding & Outlets */}
+          <div className="flex items-center px-4 gap-2.5">
+            <div className="flex items-center gap-1 font-extrabold text-[10px] uppercase tracking-wider bg-pink-700/40 px-2 py-1 rounded-md shrink-0 border border-pink-400/20 shadow-xs">
+              <Soup size={10} className="text-rose-100 shrink-0" />
+              <span>LAUK & PUDING</span>
+            </div>
+            <div className="overflow-hidden whitespace-nowrap flex-1 relative flex items-center h-6">
+              <div className="animate-marquee whitespace-nowrap flex items-center text-[13px] sm:text-sm font-extrabold tracking-wide text-rose-100">
+                {repeatedRow2}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
