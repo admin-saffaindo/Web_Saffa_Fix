@@ -260,9 +260,8 @@ Mohon konfirmasi pesanan dan ketersediaan stoknya ya kak. Terima kasih! 😊`;
                   const isSelected = qty > 0;
                   const isLastItem = p.id === 'silky-pudding';
                   return (
-                    <button
+                    <div
                       key={p.id}
-                      type="button"
                       onClick={() => {
                         setCart(prev => ({
                           ...prev,
@@ -355,7 +354,7 @@ Mohon konfirmasi pesanan dan ketersediaan stoknya ya kak. Terima kasih! 😊`;
                           +
                         </button>
                       </div>
-                    </button>
+                    </div>
                   );
                 })}
               </div>
