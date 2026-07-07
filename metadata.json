@@ -1,0 +1,6 @@
+{
+  "name": "Saffa Bubur Bayi",
+  "description": "Website pemesanan MPASI Premium Saffa Bubur Bayi untuk wilayah Tanjungpinang dan Bintan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
