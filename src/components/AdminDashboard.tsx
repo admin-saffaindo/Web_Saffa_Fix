@@ -22,6 +22,7 @@ import {
   Database
 } from 'lucide-react';
 import { getAppsScriptUrl, setAppsScriptUrl, ADMIN_PIN } from '../config';
+import { DailyMenu, DEFAULT_DAILY_MENUS } from '../data';
 
 interface AdminDashboardProps {
   onBackToWebsite: () => void;
@@ -50,6 +51,9 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
   });
   const [passwordError, setPasswordError] = useState<string>('');
 
+  // Tab state: 'orders' or 'menus'
+  const [activeTab, setActiveTab] = useState<'orders' | 'menus'>('orders');
+
   // Apps Script configuration state
   const [webAppUrl, setWebAppUrl] = useState<string>('');
   const [isSavingUrl, setIsSavingUrl] = useState<boolean>(false);
@@ -60,6 +64,11 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Daily Menus State
+  const [dailyMenus, setDailyMenus] = useState<DailyMenu[]>([]);
+  const [isSavingMenus, setIsSavingMenus] = useState<boolean>(false);
+  const [menuStatusMessage, setMenuStatusMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -72,8 +81,79 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
       const savedUrl = getAppsScriptUrl();
       setWebAppUrl(savedUrl);
       loadOrders(savedUrl);
+      loadDailyMenus(savedUrl);
     }
   }, [isPasswordVerified]);
+
+  // Load daily menus
+  const loadDailyMenus = async (urlToUse?: string) => {
+    const targetUrl = urlToUse !== undefined ? urlToUse : webAppUrl;
+    
+    // Fallback to localStorage or DEFAULT_DAILY_MENUS
+    const savedLocal = localStorage.getItem('saffa_daily_menus');
+    let initialMenus = DEFAULT_DAILY_MENUS;
+    if (savedLocal) {
+      try {
+        initialMenus = JSON.parse(savedLocal);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    setDailyMenus(initialMenus);
+
+    if (!targetUrl || !targetUrl.startsWith('http')) return;
+
+    try {
+      const response = await fetch(`${targetUrl}${targetUrl.includes('?') ? '&' : '?'}action=getMenus`);
+      if (response.ok) {
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setDailyMenus(data);
+          localStorage.setItem('saffa_daily_menus', JSON.stringify(data));
+        }
+      }
+    } catch (error) {
+      console.warn("Gagal memuat menu harian dari Sheets, menggunakan backup lokal.", error);
+    }
+  };
+
+  // Save daily menus to Sheets and localStorage
+  const handleSaveDailyMenus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingMenus(true);
+    setMenuStatusMessage(null);
+
+    // Save locally first
+    localStorage.setItem('saffa_daily_menus', JSON.stringify(dailyMenus));
+
+    const targetUrl = getAppsScriptUrl();
+    if (targetUrl && targetUrl.startsWith('http')) {
+      try {
+        await fetch(targetUrl, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'saveMenus', menus: dailyMenus })
+        });
+        setMenuStatusMessage({ type: 'success', text: 'Jadwal Menu Harian berhasil disimpan ke Google Sheets!' });
+      } catch (error) {
+        console.error(error);
+        setMenuStatusMessage({ type: 'error', text: 'Gagal sinkronisasi ke Google Sheets secara langsung.' });
+      } finally {
+        setIsSavingMenus(false);
+      }
+    } else {
+      setTimeout(() => {
+        setIsSavingMenus(false);
+        setMenuStatusMessage({ type: 'success', text: 'Jadwal Menu Harian berhasil disimpan di lokal browser!' });
+      }, 600);
+    }
+  };
+
+  // Handler to update a single field in a specific day's menu
+  const handleUpdateMenuField = (dayId: string, field: keyof DailyMenu, value: string) => {
+    setDailyMenus(prev => prev.map(m => m.id === dayId ? { ...m, [field]: value } : m));
+  };
 
   // PIN validation handler
   const handlePasswordSubmit = (e: React.FormEvent) => {
@@ -91,7 +171,8 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
   // Google Apps Script source code to show in setup instructions
   const appsScriptCode = `function doPost(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var doc = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = doc.getSheetByName("Data Pelanggan") || doc.getSheets()[0];
     var content = e.postData.contents;
     var data = JSON.parse(content);
     
@@ -109,6 +190,24 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
         "Catatan", 
         "Status Pesanan"
       ]);
+    }
+    
+    // Periksa apakah ini aksi saveMenus
+    if (data.action === 'saveMenus') {
+      var menuSheet = doc.getSheetByName("Menu Harian");
+      if (!menuSheet) {
+        menuSheet = doc.insertSheet("Menu Harian");
+      }
+      menuSheet.clear();
+      menuSheet.appendRow(["ID Hari", "Nama Hari", "Label Tanggal", "Menu 1 (6+ Bln)", "Menu 2 (6+ Bln)", "Nasi Tim (9+ Bln)", "Aneka Lauk (8+ Bln)", "Silky Pudding (7+ Bln)"]);
+      
+      var menus = data.menus;
+      for (var i = 0; i < menus.length; i++) {
+        var m = menus[i];
+        menuSheet.appendRow([m.id, m.dayName, m.dateLabel, m.menu1, m.menu2, m.nasiTim, m.anekaLauk, m.pudding]);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: "success", message: "Jadwal Menu Harian tersimpan" }))
+        .setMimeType(ContentService.MimeType.JSON);
     }
     
     // Periksa apakah ini aksi updateStatus
@@ -169,7 +268,35 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
 
 function doGet(e) {
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var doc = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Cek apakah aksi untuk mengambil menu harian
+    if (e && e.parameter && e.parameter.action === 'getMenus') {
+      var menuSheet = doc.getSheetByName("Menu Harian");
+      if (!menuSheet || menuSheet.getLastRow() <= 1) {
+        return ContentService.createTextOutput(JSON.stringify([]))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+      var data = menuSheet.getDataRange().getValues();
+      var rows = [];
+      for (var i = 1; i < data.length; i++) {
+        var row = {
+          id: String(data[i][0] || ''),
+          dayName: String(data[i][1] || ''),
+          dateLabel: String(data[i][2] || ''),
+          menu1: String(data[i][3] || ''),
+          menu2: String(data[i][4] || ''),
+          nasiTim: String(data[i][5] || ''),
+          anekaLauk: String(data[i][6] || ''),
+          pudding: String(data[i][7] || '')
+        };
+        rows.push(row);
+      }
+      return ContentService.createTextOutput(JSON.stringify(rows))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    var sheet = doc.getSheetByName("Data Pelanggan") || doc.getSheets()[0];
     var data = sheet.getDataRange().getValues();
     
     if (data.length <= 1) {
@@ -463,6 +590,32 @@ function doGet(e) {
             >
               <Lock size={12} />
               Keluar Panel
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Tabs */}
+        <div className="border-t border-pink-400/35">
+          <div className="max-w-7xl mx-auto px-6 flex justify-start gap-4">
+            <button
+              onClick={() => setActiveTab('orders')}
+              className={`py-3 px-2 font-bold text-xs tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+                activeTab === 'orders' 
+                  ? 'border-white text-white font-extrabold' 
+                  : 'border-transparent text-pink-100 hover:text-white'
+              }`}
+            >
+              📋 Kelola Pesanan
+            </button>
+            <button
+              onClick={() => setActiveTab('menus')}
+              className={`py-3 px-2 font-bold text-xs tracking-wider uppercase border-b-2 transition-all cursor-pointer ${
+                activeTab === 'menus' 
+                  ? 'border-white text-white font-extrabold' 
+                  : 'border-transparent text-pink-100 hover:text-white'
+              }`}
+            >
+              🗓️ Kelola Menu Harian
             </button>
           </div>
         </div>
