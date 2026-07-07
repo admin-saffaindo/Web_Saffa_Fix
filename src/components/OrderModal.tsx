@@ -271,10 +271,39 @@ Mohon konfirmasi pesanan dan ketersediaan stoknya ya kak. Terima kasih! 😊`;
                         {p.unit === 'porsi' ? 'Hangat & lezat' : p.unit === 'pack' ? 'Lauk sehat harian' : 'Manis lembut segar'}
                       </p>
                       
-                      {isSelected && (
-                        <span className="absolute bottom-2.5 right-2.5 flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                      {isSelected ? (
+                        <div 
+                          className="absolute bottom-1.5 right-1.5 flex items-center bg-pink-500 text-white rounded-lg p-0.5 gap-1 text-[10px] font-extrabold shadow-sm z-10"
+                          onClick={(e) => e.stopPropagation()}
+                          id={`qty-selector-inline-${p.id}`}
+                        >
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuantity(q => Math.max(1, q - 1));
+                            }}
+                            className="w-4 h-4 flex items-center justify-center hover:bg-pink-600 rounded-md transition-colors font-black text-center"
+                            title="Kurangi"
+                          >
+                            -
+                          </button>
+                          <span className="min-w-[12px] text-center font-display leading-none">{quantity}</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQuantity(q => q + 1);
+                            }}
+                            className="w-4 h-4 flex items-center justify-center hover:bg-pink-600 rounded-md transition-colors font-black text-center"
+                            title="Tambah"
+                          >
+                            +
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="absolute bottom-2 right-2 text-[8px] text-slate-400 font-bold bg-slate-100 px-1.5 py-0.5 rounded-md">
+                          Pilih
                         </span>
                       )}
                     </button>
