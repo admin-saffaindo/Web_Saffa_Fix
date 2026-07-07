@@ -73,6 +73,25 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
     return activeMenu.dayName === 'Minggu' ? 'Ahad' : activeMenu.dayName;
   };
 
+  // Helper to get automatic Indonesia Day and Date today
+  const getIndonesianDateToday = () => {
+    try {
+      const options: Intl.DateTimeFormatOptions = { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      };
+      let dateStr = new Date().toLocaleDateString('id-ID', options);
+      // Ensure 'Minggu' is replaced with 'Ahad' for Saffa client preference
+      dateStr = dateStr.replace(/Minggu/i, 'Ahad');
+      return dateStr;
+    } catch (e) {
+      // Fallback
+      return `${getDayNameDisplay()}`;
+    }
+  };
+
   // Helper to trigger ordering of a specific category product
   const handleOrderCategory = (productId: string) => {
     const product = PRODUCTS.find(p => p.id === productId);
@@ -108,15 +127,14 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
         <div className="mt-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-100 p-6 sm:p-10 shadow-xs" id="selected-day-menu-container">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-8 pb-6 border-b border-slate-200/60">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5 flex-wrap">
                 <h3 className="font-display font-extrabold text-xl text-slate-800">
-                  Menu Hari {getDayNameDisplay()}
+                  Menu Hari Ini
                 </h3>
-                {activeMenu?.dateLabel && (
-                  <span className="bg-pink-100 text-pink-700 text-xs px-2.5 py-0.5 rounded-full font-bold">
-                    {activeMenu.dateLabel}
-                  </span>
-                )}
+                <span className="bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs sm:text-sm px-3.5 py-1.5 rounded-full font-extrabold shadow-xs flex items-center gap-1.5 animate-pulse">
+                  <span>📅</span>
+                  <span>{getIndonesianDateToday()}</span>
+                </span>
               </div>
               <p className="text-xs text-slate-400 mt-1 font-medium">Siap dipesan untuk diambil langsung di outlet terdekat</p>
             </div>

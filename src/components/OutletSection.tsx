@@ -47,7 +47,7 @@ export default function OutletSection({ onSelectProductWithOutlet }: OutletSecti
         <div className="max-w-3xl mx-auto mb-10 bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex gap-3 items-center">
           <Clock className="text-amber-500 shrink-0" size={20} />
           <div className="text-xs text-amber-900 leading-relaxed font-medium">
-            ⏰ <span className="font-bold">Jam Operasional Outlet:</span> Setiap hari pukul <span className="font-bold">06.00 - 09.00 WIB</span> (Sangat disarankan membeli lebih awal karena bubur segar kami cepat habis terjual!).
+            ⏰ <span className="font-bold">Jam Operasional Outlet:</span> Setiap hari pukul <span className="font-bold">06.00 - 10.00 WIB</span> (Sangat disarankan membeli lebih awal karena bubur segar kami cepat habis terjual!).
           </div>
         </div>
 

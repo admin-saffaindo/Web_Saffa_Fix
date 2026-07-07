@@ -123,19 +123,21 @@ export default function RunningMenuTicker() {
     <>
       {/* 1. Desktop version (visible on md: and up) */}
       <div 
-        className="hidden md:block bg-gradient-to-r from-pink-500 to-rose-400 text-white py-2.5 overflow-hidden relative border-y border-pink-600/20 shadow-xs z-30 select-none"
+        className="hidden md:block bg-gradient-to-r from-pink-500 to-rose-400 text-white py-2 overflow-hidden relative border-y border-pink-600/20 shadow-xs z-30 select-none"
         id="today-running-menu-ticker-desktop"
       >
-        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-pink-500 to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-rose-400 to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-pink-500 via-pink-500/80 to-transparent z-20 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-rose-400 via-rose-400/80 to-transparent z-20 pointer-events-none" />
         
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest bg-white/25 backdrop-blur-md px-3 py-1 rounded-full shrink-0 animate-pulse border border-white/20">
-            <Sparkles size={11} className="text-amber-200 fill-amber-200" />
-            <span>MENU HARI INI ({getDayNameDisplay()})</span>
+        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+          {/* Stacked "Bertingkat" Label for Desktop */}
+          <div className="flex flex-col justify-center items-center text-center bg-white/20 backdrop-blur-md py-1 px-3.5 rounded-xl shrink-0 border border-white/20 z-30 shadow-xs leading-none animate-pulse select-none min-w-[110px]">
+            <span className="text-[9px] font-black tracking-widest text-amber-200">MENU</span>
+            <span className="text-[11px] font-black tracking-wide text-white mt-0.5">{getDayNameDisplay().toUpperCase()}</span>
           </div>
           
-          <div className="overflow-hidden whitespace-nowrap ml-4 flex-1 relative flex items-center h-5">
+          {/* Running Text */}
+          <div className="overflow-hidden whitespace-nowrap ml-6 flex-1 relative flex items-center h-6 z-10">
             <div className="animate-marquee whitespace-nowrap flex items-center text-xs font-bold tracking-wide">
               {repeatedText}
             </div>
@@ -148,18 +150,18 @@ export default function RunningMenuTicker() {
         className="block md:hidden bg-gradient-to-br from-pink-500 via-rose-500 to-pink-600 text-white py-3 overflow-hidden relative border-b border-pink-600/30 shadow-md z-30 select-none"
         id="today-running-menu-ticker-mobile"
       >
-        <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-pink-500 to-transparent z-10 pointer-events-none" />
-        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-pink-600 to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-pink-500 to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-pink-600 to-transparent z-10 pointer-events-none" />
         
         <div className="flex flex-col gap-2.5">
           {/* Row 1: Bubur & Nasi Tim */}
-          <div className="flex items-center px-4 gap-2.5">
-            <div className="flex items-center gap-1 font-extrabold text-[10px] uppercase tracking-wider bg-white/25 backdrop-blur-md px-2 py-1 rounded-md shrink-0 border border-white/10 shadow-xs">
-              <Sparkles size={10} className="text-amber-200 fill-amber-200 shrink-0" />
-              <span>{getDayNameDisplay().toUpperCase()}</span>
+          <div className="flex items-center px-4 gap-3">
+            <div className="flex flex-col justify-center items-center text-center bg-white/25 backdrop-blur-md px-2.5 py-1 rounded-lg shrink-0 border border-white/15 shadow-xs leading-none min-w-[70px]">
+              <span className="text-[8px] font-black tracking-widest text-amber-200">MENU</span>
+              <span className="text-[10px] font-black tracking-wider text-white mt-0.5">{getDayNameDisplay().toUpperCase()}</span>
             </div>
             <div className="overflow-hidden whitespace-nowrap flex-1 relative flex items-center h-6">
-              <div className="animate-marquee whitespace-nowrap flex items-center text-[13px] sm:text-sm font-black tracking-wide">
+              <div className="animate-marquee whitespace-nowrap flex items-center text-sm font-black tracking-wide">
                 {repeatedRow1}
               </div>
             </div>
@@ -169,13 +171,13 @@ export default function RunningMenuTicker() {
           <div className="border-t border-dashed border-white/15 mx-4" />
 
           {/* Row 2: Lauk, Pudding & Outlets */}
-          <div className="flex items-center px-4 gap-2.5">
-            <div className="flex items-center gap-1 font-extrabold text-[10px] uppercase tracking-wider bg-pink-700/40 px-2 py-1 rounded-md shrink-0 border border-pink-400/20 shadow-xs">
-              <Soup size={10} className="text-rose-100 shrink-0" />
-              <span>LAUK & PUDING</span>
+          <div className="flex items-center px-4 gap-3">
+            <div className="flex flex-col justify-center items-center text-center bg-pink-700/40 px-2.5 py-1 rounded-lg shrink-0 border border-pink-400/20 shadow-xs leading-none min-w-[70px]">
+              <span className="text-[8px] font-black tracking-widest text-rose-200">PELENGKAP</span>
+              <span className="text-[10px] font-black tracking-wider text-white mt-0.5">LAUK/PUDING</span>
             </div>
             <div className="overflow-hidden whitespace-nowrap flex-1 relative flex items-center h-6">
-              <div className="animate-marquee whitespace-nowrap flex items-center text-[13px] sm:text-sm font-extrabold tracking-wide text-rose-100">
+              <div className="animate-marquee whitespace-nowrap flex items-center text-sm font-extrabold tracking-wide text-rose-100">
                 {repeatedRow2}
               </div>
             </div>
