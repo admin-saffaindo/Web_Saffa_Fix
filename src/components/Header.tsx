@@ -64,10 +64,16 @@ export default function Header({ onOpenOrderModal, onOpenAdmin }: HeaderProps) {
             Beranda
           </button>
           <button
+            onClick={() => scrollToSection('jadwal-menu')}
+            className="text-slate-600 hover:text-pink-600 font-bold transition-colors cursor-pointer"
+          >
+            Jadwal Harian
+          </button>
+          <button
             onClick={() => scrollToSection('menu')}
             className="text-slate-600 hover:text-pink-600 font-bold transition-colors cursor-pointer"
           >
-            Menu Sehat
+            Daftar Produk
           </button>
           <button
             onClick={() => scrollToSection('outlet')}
@@ -129,16 +135,31 @@ export default function Header({ onOpenOrderModal, onOpenAdmin }: HeaderProps) {
           id="mobile-nav-drawer"
         >
           <button
-            onClick={() => scrollToSection('home')}
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              scrollToSection('home');
+            }}
             className="text-left py-2.5 text-slate-700 font-bold border-b border-pink-50 hover:text-pink-500 text-sm"
           >
             Beranda
           </button>
           <button
-            onClick={() => scrollToSection('menu')}
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              scrollToSection('jadwal-menu');
+            }}
             className="text-left py-2.5 text-slate-700 font-bold border-b border-pink-50 hover:text-pink-500 text-sm"
           >
-            Menu Sehat
+            Jadwal Harian
+          </button>
+          <button
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              scrollToSection('menu');
+            }}
+            className="text-left py-2.5 text-slate-700 font-bold border-b border-pink-50 hover:text-pink-500 text-sm"
+          >
+            Daftar Produk
           </button>
           <button
             onClick={() => scrollToSection('outlet')}

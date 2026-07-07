@@ -19,7 +19,11 @@ import {
   ChevronDown,
   Info,
   Sliders,
-  Database
+  Database,
+  Soup,
+  Utensils,
+  Fish,
+  Dessert
 } from 'lucide-react';
 import { getAppsScriptUrl, setAppsScriptUrl, ADMIN_PIN } from '../config';
 import { DailyMenu, DEFAULT_DAILY_MENUS } from '../data';
@@ -67,8 +71,19 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
 
   // Daily Menus State
   const [dailyMenus, setDailyMenus] = useState<DailyMenu[]>([]);
+  const [selectedMenuDayId, setSelectedMenuDayId] = useState<string>('day-1');
   const [isSavingMenus, setIsSavingMenus] = useState<boolean>(false);
   const [menuStatusMessage, setMenuStatusMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [startDateInput, setStartDateInput] = useState<string>(() => {
+    const today = new Date();
+    const day = today.getDay();
+    const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(today.setDate(diff));
+    const yyyy = monday.getFullYear();
+    const mm = String(monday.getMonth() + 1).padStart(2, '0');
+    const dd = String(monday.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  });
 
   // Filters State
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -90,7 +105,7 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
     const targetUrl = urlToUse !== undefined ? urlToUse : webAppUrl;
     
     // Fallback to localStorage or DEFAULT_DAILY_MENUS
-    const savedLocal = localStorage.getItem('saffa_daily_menus');
+    const savedLocal = localStorage.getItem('saffa_daily_menus_v2');
     let initialMenus = DEFAULT_DAILY_MENUS;
     if (savedLocal) {
       try {
@@ -109,7 +124,7 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
           setDailyMenus(data);
-          localStorage.setItem('saffa_daily_menus', JSON.stringify(data));
+          localStorage.setItem('saffa_daily_menus_v2', JSON.stringify(data));
         }
       }
     } catch (error) {
@@ -124,7 +139,7 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
     setMenuStatusMessage(null);
 
     // Save locally first
-    localStorage.setItem('saffa_daily_menus', JSON.stringify(dailyMenus));
+    localStorage.setItem('saffa_daily_menus_v2', JSON.stringify(dailyMenus));
 
     const targetUrl = getAppsScriptUrl();
     if (targetUrl && targetUrl.startsWith('http')) {
@@ -150,9 +165,88 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
     }
   };
 
+  // Clear all menu text fields across all 7 days so user can type cleanly
+  const handleClearAllMenus = () => {
+    const confirmClear = window.confirm("Apakah Anda yakin ingin mengosongkan seluruh teks menu harian dari Senin sampai Ahad?");
+    if (!confirmClear) return;
+
+    setDailyMenus(prev => prev.map(m => ({
+      ...m,
+      menu1: '',
+      menu2: '',
+      nasiTim: '',
+      anekaLauk: '',
+      pudding: ''
+    })));
+
+    setMenuStatusMessage({
+      type: 'success',
+      text: '🧹 Semua isi menu berhasil dikosongkan! Silakan mulai ketik menu baru Anda.'
+    });
+    setTimeout(() => {
+      setMenuStatusMessage(null);
+    }, 5000);
+  };
+
   // Handler to update a single field in a specific day's menu
   const handleUpdateMenuField = (dayId: string, field: keyof DailyMenu, value: string) => {
     setDailyMenus(prev => prev.map(m => m.id === dayId ? { ...m, [field]: value } : m));
+  };
+
+  // Automatically find the Monday of the selected week and synchronize all 7 days (Monday - Sunday) with their correct calendar dates
+  const handleAutoSetDates = (startDateStr: string) => {
+    if (!startDateStr) {
+      setMenuStatusMessage({ type: 'error', text: 'Silakan pilih tanggal terlebih dahulu!' });
+      return;
+    }
+    
+    const parts = startDateStr.split('-');
+    if (parts.length !== 3) return;
+    
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // 0-indexed
+    const day = parseInt(parts[2], 10);
+    
+    const selectedDate = new Date(year, month, day);
+    if (isNaN(selectedDate.getTime())) {
+      setMenuStatusMessage({ type: 'error', text: 'Tanggal yang dipilih tidak valid.' });
+      return;
+    }
+
+    // Find the Monday of that week
+    // getDay() returns 0 for Sunday, 1 for Monday, ..., 6 for Saturday
+    const currentDayOfWeek = selectedDate.getDay();
+    const diffToMonday = currentDayOfWeek === 0 ? -6 : 1 - currentDayOfWeek;
+    const mondayDate = new Date(selectedDate);
+    mondayDate.setDate(selectedDate.getDate() + diffToMonday);
+
+    const indonesianMonths = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    const updatedMenus = dailyMenus.map((menu, index) => {
+      // Calculate date for each day of the week based on Monday
+      const currentDate = new Date(mondayDate);
+      currentDate.setDate(mondayDate.getDate() + index);
+      
+      const dayNum = currentDate.getDate();
+      const monthName = indonesianMonths[currentDate.getMonth()];
+      const label = `${dayNum} ${monthName}`;
+      return {
+        ...menu,
+        dateLabel: label
+      };
+    });
+
+    setDailyMenus(updatedMenus);
+    setMenuStatusMessage({
+      type: 'success',
+      text: `📅 Tanggal disinkronkan! Senin (${updatedMenus[0].dateLabel}) s/d Minggu (${updatedMenus[updatedMenus.length - 1].dateLabel}) telah sesuai kalender.`
+    });
+    setTimeout(() => {
+      setMenuStatusMessage(null);
+    }, 6000);
   };
 
   // PIN validation handler
@@ -778,186 +872,410 @@ function doGet(e) {
         </div>
 
         {/* Orders Management Board */}
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="font-display font-extrabold text-base text-slate-800">Daftar Pesanan Saffa</h2>
-              <p className="text-xs text-slate-400 mt-0.5">Pantau pesanan real-time dari Google Sheets Anda</p>
-            </div>
-            
-            <button
-              onClick={() => loadOrders(webAppUrl)}
-              disabled={isLoading}
-              className="p-2.5 bg-pink-50 hover:bg-pink-100 text-pink-500 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer disabled:opacity-50"
-            >
-              <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
-              Refresh Data Sheets
-            </button>
-          </div>
-
-          {/* Search & Filters Controls */}
-          <div className="p-4 bg-slate-50 border-b border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div className="relative">
-              <span className="absolute left-3.5 top-3 text-slate-400">
-                <Search size={14} />
-              </span>
-              <input
-                type="text"
-                placeholder="Cari nama, No WA, ID pesanan, atau menu..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-white border border-slate-200 text-slate-800 placeholder-slate-400 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-pink-400 transition-colors"
-              />
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">Status:</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-400 cursor-pointer"
+        {activeTab === 'orders' && (
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="font-display font-extrabold text-base text-slate-800">Daftar Pesanan Saffa</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Pantau pesanan real-time dari Google Sheets Anda</p>
+              </div>
+              
+              <button
+                onClick={() => loadOrders(webAppUrl)}
+                disabled={isLoading}
+                className="p-2.5 bg-pink-50 hover:bg-pink-100 text-pink-500 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer disabled:opacity-50"
               >
-                <option value="all">Semua Status</option>
-                <option value="pending">Menunggu Konfirmasi (Pending)</option>
-                <option value="confirmed">Dikonfirmasi (Confirmed)</option>
-                <option value="completed">Selesai (Completed)</option>
-                <option value="cancelled">Dibatalkan (Cancelled)</option>
-              </select>
+                <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+                Refresh Data Sheets
+              </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">Outlet:</span>
-              <select
-                value={outletFilter}
-                onChange={(e) => setOutletFilter(e.target.value)}
-                className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-400 cursor-pointer"
-              >
-                <option value="all">Semua Outlet</option>
-                {uniqueOutlets.map((outlet, idx) => (
-                  <option key={idx} value={outlet}>{outlet}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+            {/* Search & Filters Controls */}
+            <div className="p-4 bg-slate-50 border-b border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="relative">
+                <span className="absolute left-3.5 top-3 text-slate-400">
+                  <Search size={14} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Cari nama, No WA, ID pesanan, atau menu..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white border border-slate-200 text-slate-800 placeholder-slate-400 rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-pink-400 transition-colors"
+                />
+              </div>
 
-          {/* Orders Table view */}
-          {isLoading ? (
-            <div className="text-center py-16 text-slate-400">
-              <RefreshCw className="animate-spin mx-auto text-pink-500 mb-2" />
-              Menghubungi Google Sheets untuk memuat pesanan...
-            </div>
-          ) : filteredOrders.length === 0 ? (
-            <div className="text-center py-16 text-slate-400">
-              <ShoppingBag size={32} className="mx-auto text-slate-300 mb-3" />
-              <p className="font-bold text-sm text-slate-600">Tidak Ada Pesanan Ditemukan</p>
-              <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                {webAppUrl 
-                  ? "Belum ada pesanan yang tersimpan di Google Sheet Anda." 
-                  : "Belum ada pesanan lokal yang tersimpan di browser ini. Hubungkan Google Sheets di atas untuk melihat data sinkron cloud!"}
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
-                    <th className="p-4 pl-6">ID & Info Pelanggan</th>
-                    <th className="p-4">Detail Pesanan</th>
-                    <th className="p-4">Total & Pembayaran</th>
-                    <th className="p-4">Outlet Penjemputan</th>
-                    <th className="p-4">Ubah Status</th>
-                    <th className="p-4 pr-6 text-right">Tindakan</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {filteredOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
-                      {/* ID & Customer */}
-                      <td className="p-4 pl-6">
-                        <p className="font-mono text-[9px] text-slate-400">{order.createdAt || "Baru"}</p>
-                        <p className="font-bold text-sm text-slate-800 mt-0.5">{order.customerName}</p>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className="bg-pink-50 text-pink-700 text-[10px] px-2 py-0.5 rounded-full font-medium">
-                            {order.customerWhatsapp}
-                          </span>
-                          <a 
-                            href={`https://wa.me/${order.customerWhatsapp.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-emerald-500 hover:text-emerald-600 font-bold text-[10px] flex items-center gap-0.5"
-                          >
-                            <MessageSquare size={10} />
-                            Chat WA
-                          </a>
-                        </div>
-                      </td>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">Status:</span>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-400 cursor-pointer"
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="pending">Menunggu Konfirmasi (Pending)</option>
+                  <option value="confirmed">Dikonfirmasi (Confirmed)</option>
+                  <option value="completed">Selesai (Completed)</option>
+                  <option value="cancelled">Dibatalkan (Cancelled)</option>
+                </select>
+              </div>
 
-                      {/* Product Name */}
-                      <td className="p-4">
-                        <p className="font-bold text-slate-800">{order.productName}</p>
-                        <p className="text-slate-400 text-[11px] mt-0.5">{order.quantity} Porsi</p>
-                        {order.notes && order.notes !== '-' && (
-                          <div className="mt-1 bg-amber-50 text-amber-800 p-1.5 rounded-lg text-[10px] max-w-xs border border-amber-100/50 leading-normal">
-                            <span className="font-bold">Catatan:</span> {order.notes}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Pricing */}
-                      <td className="p-4">
-                        <p className="font-extrabold text-sm text-slate-800">
-                          Rp{order.totalPrice.toLocaleString('id-ID')}
-                        </p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">Bayar Langsung di Outlet</p>
-                      </td>
-
-                      {/* Pick up outlet */}
-                      <td className="p-4 text-slate-700">
-                        <div className="flex items-center gap-1">
-                          <MapPin size={12} className="text-pink-400" />
-                          <span className="font-medium">{order.outletName}</span>
-                        </div>
-                      </td>
-
-                      {/* Status select dropdown */}
-                      <td className="p-4">
-                        <select
-                          value={order.status}
-                          onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
-                          className={`px-2 py-1.5 rounded-md text-[10px] font-bold border cursor-pointer focus:outline-none ${
-                            order.status === 'completed'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : order.status === 'confirmed'
-                              ? 'bg-blue-50 text-blue-700 border-blue-200'
-                              : order.status === 'cancelled'
-                              ? 'bg-rose-50 text-rose-700 border-rose-200'
-                              : 'bg-amber-50 text-amber-700 border-amber-200'
-                          }`}
-                        >
-                          <option value="pending">Menunggu (Pending)</option>
-                          <option value="confirmed">Dikonfirmasi</option>
-                          <option value="completed">Selesai</option>
-                          <option value="cancelled">Batal</option>
-                        </select>
-                      </td>
-
-                      {/* Deletion action */}
-                      <td className="p-4 pr-6 text-right">
-                        <button
-                          onClick={() => handleDeleteOrder(order.id, order.customerName)}
-                          className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
-                          title="Hapus Pesanan"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase shrink-0">Outlet:</span>
+                <select
+                  value={outletFilter}
+                  onChange={(e) => setOutletFilter(e.target.value)}
+                  className="w-full bg-white border border-slate-200 text-slate-700 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-pink-400 cursor-pointer"
+                >
+                  <option value="all">Semua Outlet</option>
+                  {uniqueOutlets.map((outlet, idx) => (
+                    <option key={idx} value={outlet}>{outlet}</option>
                   ))}
-                </tbody>
-              </table>
+                </select>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Orders Table view */}
+            {isLoading ? (
+              <div className="text-center py-16 text-slate-400">
+                <RefreshCw className="animate-spin mx-auto text-pink-500 mb-2" />
+                Menghubungi Google Sheets untuk memuat pesanan...
+              </div>
+            ) : filteredOrders.length === 0 ? (
+              <div className="text-center py-16 text-slate-400">
+                <ShoppingBag size={32} className="mx-auto text-slate-300 mb-3" />
+                <p className="font-bold text-sm text-slate-600">Tidak Ada Pesanan Ditemukan</p>
+                <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
+                  {webAppUrl 
+                    ? "Belum ada pesanan yang tersimpan di Google Sheet Anda." 
+                    : "Belum ada pesanan lokal yang tersimpan di browser ini. Hubungkan Google Sheets di atas untuk melihat data sinkron cloud!"}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100 text-slate-500 font-bold uppercase tracking-wider text-[10px]">
+                      <th className="p-4 pl-6">ID & Info Pelanggan</th>
+                      <th className="p-4">Detail Pesanan</th>
+                      <th className="p-4">Total & Pembayaran</th>
+                      <th className="p-4">Outlet Penjemputan</th>
+                      <th className="p-4">Ubah Status</th>
+                      <th className="p-4 pr-6 text-right">Tindakan</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredOrders.map((order) => (
+                      <tr key={order.id} className="hover:bg-slate-50/50 transition-colors">
+                        {/* ID & Customer */}
+                        <td className="p-4 pl-6">
+                          <p className="font-mono text-[9px] text-slate-400">{order.createdAt || "Baru"}</p>
+                          <p className="font-bold text-sm text-slate-800 mt-0.5">{order.customerName}</p>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="bg-pink-50 text-pink-700 text-[10px] px-2 py-0.5 rounded-full font-medium">
+                              {order.customerWhatsapp}
+                            </span>
+                            <a 
+                              href={`https://wa.me/${order.customerWhatsapp.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-emerald-500 hover:text-emerald-600 font-bold text-[10px] flex items-center gap-0.5"
+                            >
+                              <MessageSquare size={10} />
+                              Chat WA
+                            </a>
+                          </div>
+                        </td>
+
+                        {/* Product Name */}
+                        <td className="p-4">
+                          <p className="font-bold text-slate-800">{order.productName}</p>
+                          <p className="text-slate-400 text-[11px] mt-0.5">{order.quantity} Porsi</p>
+                          {order.notes && order.notes !== '-' && (
+                            <div className="mt-1 bg-amber-50 text-amber-800 p-1.5 rounded-lg text-[10px] max-w-xs border border-amber-100/50 leading-normal">
+                              <span className="font-bold">Catatan:</span> {order.notes}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Pricing */}
+                        <td className="p-4">
+                          <p className="font-extrabold text-sm text-slate-800">
+                            Rp{order.totalPrice.toLocaleString('id-ID')}
+                          </p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Bayar Langsung di Outlet</p>
+                        </td>
+
+                        {/* Pick up outlet */}
+                        <td className="p-4 text-slate-700">
+                          <div className="flex items-center gap-1">
+                            <MapPin size={12} className="text-pink-400" />
+                            <span className="font-medium">{order.outletName}</span>
+                          </div>
+                        </td>
+
+                        {/* Status select dropdown */}
+                        <td className="p-4">
+                          <select
+                            value={order.status}
+                            onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
+                            className={`px-2 py-1.5 rounded-md text-[10px] font-bold border cursor-pointer focus:outline-none ${
+                              order.status === 'completed'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : order.status === 'confirmed'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : order.status === 'cancelled'
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}
+                          >
+                            <option value="pending">Menunggu (Pending)</option>
+                            <option value="confirmed">Dikonfirmasi</option>
+                            <option value="completed">Selesai</option>
+                            <option value="cancelled">Batal</option>
+                          </select>
+                        </td>
+
+                        {/* Deletion action */}
+                        <td className="p-4 pr-6 text-right">
+                          <button
+                            onClick={() => handleDeleteOrder(order.id, order.customerName)}
+                            className="p-2 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition-colors cursor-pointer"
+                            title="Hapus Pesanan"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Daily Menus Management Board */}
+        {activeTab === 'menus' && (
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h2 className="font-display font-extrabold text-base text-slate-800">Kelola Jadwal Menu Harian Saffa</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Ubah dan perbarui variasi menu MPASI untuk masing-masing hari</p>
+              </div>
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={handleClearAllMenus}
+                  type="button"
+                  className="p-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                  title="Kosongkan semua isi menu"
+                >
+                  <Trash2 size={14} />
+                  Kosongkan Menu
+                </button>
+                <button
+                  onClick={() => loadDailyMenus()}
+                  type="button"
+                  className="p-2.5 bg-pink-50 hover:bg-pink-100 text-pink-500 rounded-xl transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer"
+                >
+                  <RefreshCw size={14} />
+                  Muat Ulang
+                </button>
+              </div>
+            </div>
+
+            {/* Menu Status Message */}
+            {menuStatusMessage && (
+              <div className="mx-6 mt-4">
+                <div className={`p-4 rounded-2xl text-xs font-bold flex items-center gap-2 border ${
+                  menuStatusMessage.type === 'success' 
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-100' 
+                    : 'bg-rose-50 text-rose-800 border-rose-100'
+                }`}>
+                  {menuStatusMessage.type === 'success' ? <CheckCircle size={16} className="text-emerald-500" /> : <AlertTriangle size={16} className="text-rose-500" />}
+                  {menuStatusMessage.text}
+                </div>
+              </div>
+            )}
+
+            {/* Automatic Date Helper */}
+            <div className="mx-6 mt-4 p-4 bg-pink-50/20 border border-pink-100/50 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-pink-100 text-pink-700 text-[9px] font-black uppercase tracking-wider">
+                    ⚡ TIPS PRAKTIS
+                  </span>
+                  <h3 className="text-xs font-extrabold text-slate-800">Ubah Semua Tanggal Otomatis</h3>
+                </div>
+                <p className="text-[11px] text-slate-400">Pilih tanggal mana saja, sistem akan mencari hari Senin dari minggu tersebut dan mengurutkan Senin s/d Minggu agar hari dan tanggal selalu sinkron sesuai kalender asli.</p>
+              </div>
+              <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
+                <input
+                  type="date"
+                  value={startDateInput}
+                  onChange={(e) => setStartDateInput(e.target.value)}
+                  className="w-full md:w-auto bg-white border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-pink-400 font-bold shadow-xs cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAutoSetDates(startDateInput)}
+                  className="bg-pink-500 hover:bg-pink-600 active:scale-95 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1 shrink-0"
+                >
+                  Terapkan Tanggal
+                </button>
+              </div>
+            </div>
+
+            {/* Day Selector Tabs */}
+            <div className="flex flex-wrap gap-2 px-6 pt-4 justify-start md:justify-center border-b border-slate-100 pb-4 bg-slate-50/50">
+              {dailyMenus.map((day) => {
+                const isActive = day.id === selectedMenuDayId;
+                return (
+                  <button
+                    key={day.id}
+                    onClick={() => setSelectedMenuDayId(day.id)}
+                    type="button"
+                    className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer border ${
+                      isActive
+                        ? 'bg-pink-500 border-pink-500 text-white shadow-sm font-extrabold scale-105'
+                        : 'bg-white border-slate-200 text-slate-600 hover:bg-pink-50/30 hover:border-pink-300 hover:text-pink-600'
+                    }`}
+                  >
+                    📅 {day.dayName} {day.dateLabel ? `(${day.dateLabel})` : ''}
+                  </button>
+                );
+              })}
+            </div>
+
+            {(() => {
+              const activeEditingMenu = dailyMenus.find((m) => m.id === selectedMenuDayId) || dailyMenus[0];
+              if (!activeEditingMenu) {
+                return (
+                  <div className="text-center py-12 text-slate-400 text-xs">
+                    Belum ada menu harian yang dimuat. Silakan klik Muat Ulang.
+                  </div>
+                );
+              }
+              return (
+                <form onSubmit={handleSaveDailyMenus} className="p-6 space-y-6 max-w-3xl mx-auto">
+                  {/* Selected Day Banner */}
+                  <div className="bg-pink-50/40 border border-pink-100/50 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                    <div>
+                      <h3 className="text-sm font-extrabold text-slate-800">
+                        Sedang Mengedit: Hari <span className="text-pink-500 font-black">{activeEditingMenu.dayName}</span>
+                      </h3>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Semua perubahan harian akan disimpan serentak saat menekan tombol simpan.</p>
+                    </div>
+                    <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                      <label className="text-xs font-bold text-slate-600 shrink-0">Tanggal / Info:</label>
+                      <input
+                        type="text"
+                        value={activeEditingMenu.dateLabel}
+                        onChange={(e) => handleUpdateMenuField(activeEditingMenu.id, 'dateLabel', e.target.value)}
+                        placeholder="Contoh: 13 Juli"
+                        className="w-full sm:w-36 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-extrabold text-pink-500 focus:outline-none focus:border-pink-400 text-center shadow-xs"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Form Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Bubur Menu 1 */}
+                    <div className="bg-white border border-slate-200/60 p-4 rounded-2xl space-y-2 hover:border-pink-200 transition-colors shadow-xs">
+                      <div className="flex items-center gap-2 text-pink-500">
+                        <Soup size={15} />
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Bubur Menu 1 (6+ Bln)</span>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={activeEditingMenu.menu1}
+                        onChange={(e) => handleUpdateMenuField(activeEditingMenu.id, 'menu1', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 leading-normal focus:outline-none focus:bg-white focus:border-pink-400 resize-none transition-colors"
+                        placeholder="Masukkan menu bubur 1..."
+                      />
+                    </div>
+
+                    {/* Bubur Menu 2 */}
+                    <div className="bg-white border border-slate-200/60 p-4 rounded-2xl space-y-2 hover:border-pink-200 transition-colors shadow-xs">
+                      <div className="flex items-center gap-2 text-rose-500">
+                        <Soup size={15} />
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Bubur Menu 2 (6+ Bln)</span>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={activeEditingMenu.menu2}
+                        onChange={(e) => handleUpdateMenuField(activeEditingMenu.id, 'menu2', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 leading-normal focus:outline-none focus:bg-white focus:border-pink-400 resize-none transition-colors"
+                        placeholder="Masukkan menu bubur 2..."
+                      />
+                    </div>
+
+                    {/* Nasi Tim */}
+                    <div className="bg-white border border-slate-200/60 p-4 rounded-2xl space-y-2 hover:border-pink-200 transition-colors shadow-xs">
+                      <div className="flex items-center gap-2 text-orange-500">
+                        <Utensils size={15} />
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Nasi Tim (9+ Bln)</span>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={activeEditingMenu.nasiTim}
+                        onChange={(e) => handleUpdateMenuField(activeEditingMenu.id, 'nasiTim', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 leading-normal focus:outline-none focus:bg-white focus:border-pink-400 resize-none transition-colors"
+                        placeholder="Masukkan menu nasi tim..."
+                      />
+                    </div>
+
+                    {/* Aneka Lauk */}
+                    <div className="bg-white border border-slate-200/60 p-4 rounded-2xl space-y-2 hover:border-pink-200 transition-colors shadow-xs">
+                      <div className="flex items-center gap-2 text-emerald-500">
+                        <Fish size={15} />
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Aneka Lauk (8+ Bln)</span>
+                      </div>
+                      <textarea
+                        rows={3}
+                        value={activeEditingMenu.anekaLauk}
+                        onChange={(e) => handleUpdateMenuField(activeEditingMenu.id, 'anekaLauk', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 leading-normal focus:outline-none focus:bg-white focus:border-pink-400 resize-none transition-colors"
+                        placeholder="Masukkan aneka lauk pendamping..."
+                      />
+                    </div>
+
+                    {/* Silky Pudding */}
+                    <div className="bg-white border border-slate-200/60 p-4 rounded-2xl space-y-2 hover:border-pink-200 transition-colors shadow-xs md:col-span-2">
+                      <div className="flex items-center gap-2 text-amber-500">
+                        <Dessert size={15} />
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-700">Silky Pudding Camilan (7+ Bln)</span>
+                      </div>
+                      <textarea
+                        rows={2}
+                        value={activeEditingMenu.pudding}
+                        onChange={(e) => handleUpdateMenuField(activeEditingMenu.id, 'pudding', e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-700 leading-normal focus:outline-none focus:bg-white focus:border-pink-400 resize-none transition-colors"
+                        placeholder="Masukkan variasi puding..."
+                      />
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex flex-col sm:flex-row justify-between items-center pt-6 border-t border-slate-100 gap-4">
+                    <p className="text-[11px] text-slate-400 text-center sm:text-left leading-normal max-w-md">
+                      💡 <span className="font-bold">Tips:</span> Anda dapat berpindah hari di tab atas untuk melihat dan mengedit hari lain. Setelah semua selesai, klik tombol Simpan di kanan.
+                    </p>
+                    <button
+                      type="submit"
+                      disabled={isSavingMenus}
+                      className="w-full sm:w-auto bg-pink-500 hover:bg-pink-600 disabled:bg-slate-300 text-white font-extrabold text-xs py-3.5 px-8 rounded-2xl transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                    >
+                      {isSavingMenus ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                      {webAppUrl ? "Simpan & Sinkronkan ke Google Sheets" : "Simpan di Lokal Browser"}
+                    </button>
+                  </div>
+                </form>
+              );
+            })()}
+          </div>
+        )}
       </div>
     </div>
   );

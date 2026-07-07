@@ -20,7 +20,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
 
   const loadDailyMenus = async () => {
     setIsLoading(true);
-    const savedLocal = localStorage.getItem('saffa_daily_menus');
+    const savedLocal = localStorage.getItem('saffa_daily_menus_v2');
     let initialMenus = DEFAULT_DAILY_MENUS;
     
     if (savedLocal) {
@@ -42,7 +42,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
           const data = await response.json();
           if (Array.isArray(data) && data.length > 0) {
             setMenus(data);
-            localStorage.setItem('saffa_daily_menus', JSON.stringify(data));
+            localStorage.setItem('saffa_daily_menus_v2', JSON.stringify(data));
           }
         }
       } catch (err) {
@@ -143,7 +143,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                 </div>
                 <div className="bg-pink-50/30 p-3 rounded-2xl border border-pink-100/20">
                   <p className="text-slate-600 text-xs font-semibold leading-relaxed min-h-[50px] line-clamp-3">
-                    {activeMenu?.menu1 || 'Memuat...'}
+                    {activeMenu?.menu1 || '-'}
                   </p>
                 </div>
               </div>
@@ -171,7 +171,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                 </div>
                 <div className="bg-rose-50/30 p-3 rounded-2xl border border-rose-100/20">
                   <p className="text-slate-600 text-xs font-semibold leading-relaxed min-h-[50px] line-clamp-3">
-                    {activeMenu?.menu2 || 'Memuat...'}
+                    {activeMenu?.menu2 || '-'}
                   </p>
                 </div>
               </div>
@@ -199,7 +199,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                 </div>
                 <div className="bg-orange-50/30 p-3 rounded-2xl border border-orange-100/20">
                   <p className="text-slate-600 text-xs font-semibold leading-relaxed min-h-[50px] line-clamp-3">
-                    {activeMenu?.nasiTim || 'Memuat...'}
+                    {activeMenu?.nasiTim || '-'}
                   </p>
                 </div>
               </div>
@@ -227,7 +227,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                 </div>
                 <div className="bg-emerald-50/30 p-3 rounded-2xl border border-emerald-100/20">
                   <p className="text-slate-600 text-xs font-semibold leading-relaxed min-h-[50px] line-clamp-3">
-                    {activeMenu?.anekaLauk || 'Memuat...'}
+                    {activeMenu?.anekaLauk || '-'}
                   </p>
                 </div>
               </div>
@@ -255,7 +255,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                 </div>
                 <div className="bg-amber-50/30 p-3 rounded-2xl border border-amber-100/20">
                   <p className="text-slate-600 text-xs font-semibold leading-relaxed min-h-[50px] line-clamp-3">
-                    {activeMenu?.pudding || 'Memuat...'}
+                    {activeMenu?.pudding || '-'}
                   </p>
                 </div>
               </div>

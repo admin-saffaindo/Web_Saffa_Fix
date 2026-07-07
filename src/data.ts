@@ -209,71 +209,71 @@ export const DEFAULT_DAILY_MENUS: DailyMenu[] = [
   {
     id: 'day-1',
     dayName: 'Senin',
-    dateLabel: '13 Juli',
-    menu1: 'Ayam Kampung Organik & Labu Kuning',
-    menu2: 'Ikan Tenggiri Segar & Wortel Manis',
-    nasiTim: 'Salmon Premium & Brokoli',
-    anekaLauk: 'Pepes Tenggiri Lembut',
-    pudding: 'Melon Segar & Ubi Ungu Manis'
+    dateLabel: '',
+    menu1: '',
+    menu2: '',
+    nasiTim: '',
+    anekaLauk: '',
+    pudding: ''
   },
   {
     id: 'day-2',
     dayName: 'Selasa',
-    dateLabel: '14 Juli',
-    menu1: 'Daging Sapi Giling & Sup Bayam',
-    menu2: 'Ayam Fillet & Labu Siam',
-    nasiTim: 'Ikan Kakap Merah & Wortel',
-    anekaLauk: 'Rolade Ayam MPASI',
-    pudding: 'Cokelat Susu & Mangga Arumanis'
+    dateLabel: '',
+    menu1: '',
+    menu2: '',
+    nasiTim: '',
+    anekaLauk: '',
+    pudding: ''
   },
   {
     id: 'day-3',
     dayName: 'Rabu',
-    dateLabel: '15 Juli',
-    menu1: 'Hati Ayam Kampung & Kacang Merah',
-    menu2: 'Daging Bebek Giling & Labu Kuning',
-    nasiTim: 'Tuna Fillet & Sayur Kelor',
-    anekaLauk: 'Perkedel Kentang Salmon',
-    pudding: 'Strawberry Cream & Alpukat Lembut'
+    dateLabel: '',
+    menu1: '',
+    menu2: '',
+    nasiTim: '',
+    anekaLauk: '',
+    pudding: ''
   },
   {
     id: 'day-4',
     dayName: 'Kamis',
-    dateLabel: '16 Juli',
-    menu1: 'Ikan Salmon & Brokoli Halus',
-    menu2: 'Ayam Kampung & Jagung Manis Pipil',
-    nasiTim: 'Daging Sapi Giling & Wortel Serut',
-    anekaLauk: 'Bakso Ayam MPASI Kuah Kaldu',
-    pudding: 'Mangga Segar & Vanilla Cream'
+    dateLabel: '',
+    menu1: '',
+    menu2: '',
+    nasiTim: '',
+    anekaLauk: '',
+    pudding: ''
   },
   {
     id: 'day-5',
     dayName: 'Jumat',
-    dateLabel: '17 Juli',
-    menu1: 'Tuna Fillet & Wortel Manis',
-    menu2: 'Daging Sapi & Kacang Hijau Kupas',
-    nasiTim: 'Hati Sapi & Bayam Merah',
-    anekaLauk: 'Semur Ayam Cincang Halus',
-    pudding: 'Pisang Ambon & Silky Vanilla'
+    dateLabel: '',
+    menu1: '',
+    menu2: '',
+    nasiTim: '',
+    anekaLauk: '',
+    pudding: ''
   },
   {
     id: 'day-6',
     dayName: 'Sabtu',
-    dateLabel: '18 Juli',
-    menu1: 'Daging Bebek & Labu Siam',
-    menu2: 'Ikan Kakap & Sup Jagung Manis',
-    nasiTim: 'Ayam Kampung & Labu Parang',
-    anekaLauk: 'Nugget Tempe Ayam Kukus',
-    pudding: 'Kelapa Muda & Silky Strawberry'
+    dateLabel: '',
+    menu1: '',
+    menu2: '',
+    nasiTim: '',
+    anekaLauk: '',
+    pudding: ''
   },
   {
     id: 'day-7',
-    dayName: 'Minggu',
-    dateLabel: '19 Juli',
-    menu1: 'Daging Sapi & Kentang Lembut',
-    menu2: 'Ayam Organik & Keju MPASI',
-    nasiTim: 'Tuna Segar & Sup Sayur Komplit',
-    anekaLauk: 'Sosis Ayam MPASI Homemade',
-    pudding: 'Ubi Ungu Manis & Silky Melon'
+    dayName: 'Ahad',
+    dateLabel: '',
+    menu1: '',
+    menu2: '',
+    nasiTim: '',
+    anekaLauk: '',
+    pudding: ''
   }
 ];

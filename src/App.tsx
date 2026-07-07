@@ -3,6 +3,8 @@ import Header from './components/Header';
 import Hero from './components/Hero';
 import Keunggulan from './components/Keunggulan';
 import MenuSection from './components/MenuSection';
+import DailyMenuSection from './components/DailyMenuSection';
+import RunningMenuTicker from './components/RunningMenuTicker';
 import OutletSection from './components/OutletSection';
 import AboutSection from './components/AboutSection';
 import Footer from './components/Footer';
@@ -51,12 +53,18 @@ export default function App() {
       />
 
       {/* Main Sections */}
-      <main className="flex-grow" id="saffa-main-content">
+      <main className="flex-grow pt-24" id="saffa-main-content">
+        {/* Today's Running Menu Ticker */}
+        <RunningMenuTicker />
+
         {/* 1. Hero Section */}
         <Hero onOpenOrderModal={handleOpenGeneralOrderModal} />
 
         {/* 2. Keunggulan Section */}
         <Keunggulan />
+
+        {/* Daily Schedule Menu Section */}
+        <DailyMenuSection onSelectProduct={handleSelectProduct} />
 
         {/* 3. Product Menu Section */}
         <MenuSection onSelectProduct={handleSelectProduct} />
