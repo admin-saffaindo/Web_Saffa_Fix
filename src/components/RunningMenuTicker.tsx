@@ -36,9 +36,14 @@ export default function RunningMenuTicker() {
         }
       }
 
-      // 2. Identify Today's Menu
+      // 2. Identify Today's or Tomorrow's Menu depending on time (> 19:00)
+      const now = new Date();
+      let targetDate = now;
+      if (now.getHours() >= 19) {
+        targetDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      }
       // Date.getDay() returns 0 for Sunday (Ahad), 1 for Monday (Senin), ..., 6 for Saturday (Sabtu)
-      const dayIndex = new Date().getDay();
+      const dayIndex = targetDate.getDay();
       const saffaIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Map Sunday (0) to Saffa's index 6 (Ahad)
       
       const foundToday = currentMenus[saffaIndex] || currentMenus[0];
@@ -66,7 +71,12 @@ export default function RunningMenuTicker() {
   const getDayNameDisplay = (): string => {
     if (!todayMenu || !todayMenu.dayName) {
       const indonesianDays = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-      const dayIndex = new Date().getDay();
+      const now = new Date();
+      let targetDate = now;
+      if (now.getHours() >= 19) {
+        targetDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      }
+      const dayIndex = targetDate.getDay();
       return indonesianDays[dayIndex];
     }
     return todayMenu.dayName === 'Minggu' ? 'Ahad' : todayMenu.dayName;

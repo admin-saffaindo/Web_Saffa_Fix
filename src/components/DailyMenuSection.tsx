@@ -51,10 +51,50 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
     setIsLoading(false);
   };
 
-  // Find currently selected day menu based on today's date automatically
+  // Set up viewingDay: defaults to 'tomorrow' if after 19:00, otherwise 'today'
+  const [viewingDay, setViewingDay] = useState<'today' | 'tomorrow'>(() => {
+    const hour = new Date().getHours();
+    return hour >= 19 ? 'tomorrow' : 'today';
+  });
+
+  const getTodayDate = (): Date => {
+    return new Date();
+  };
+
+  const getTomorrowDate = (): Date => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow;
+  };
+
+  const getMenuTargetDate = (): Date => {
+    return viewingDay === 'tomorrow' ? getTomorrowDate() : getTodayDate();
+  };
+
+  const formatIndonesianDate = (date: Date): string => {
+    try {
+      const options: Intl.DateTimeFormatOptions = { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long', 
+        year: 'numeric' 
+      };
+      let dateStr = date.toLocaleDateString('id-ID', options);
+      // Ensure 'Minggu' is replaced with 'Ahad' for Saffa client preference
+      dateStr = dateStr.replace(/Minggu/i, 'Ahad');
+      return dateStr;
+    } catch (e) {
+      const indonesianDays = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      return indonesianDays[date.getDay()];
+    }
+  };
+
+  // Find currently selected day menu based on target date automatically
   const getActiveMenuForToday = (): DailyMenu => {
     if (menus.length === 0) return DEFAULT_DAILY_MENUS[0];
-    const dayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday...
+    const targetDate = getMenuTargetDate();
+    const dayIndex = targetDate.getDay(); // 0 is Sunday, 1 is Monday...
     const saffaIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Sunday is index 6 (Ahad), Monday is 0 (Senin)...
     return menus[saffaIndex] || menus[0];
   };
@@ -71,7 +111,8 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
   const getDayNameDisplay = (): string => {
     if (!activeMenu || !activeMenu.dayName) {
       const indonesianDays = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-      const dayIndex = new Date().getDay();
+      const targetDate = getMenuTargetDate();
+      const dayIndex = targetDate.getDay();
       return indonesianDays[dayIndex];
     }
     return activeMenu.dayName === 'Minggu' ? 'Ahad' : activeMenu.dayName;
@@ -79,21 +120,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
 
   // Helper to get automatic Indonesia Day and Date today
   const getIndonesianDateToday = () => {
-    try {
-      const options: Intl.DateTimeFormatOptions = { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long', 
-        year: 'numeric' 
-      };
-      let dateStr = new Date().toLocaleDateString('id-ID', options);
-      // Ensure 'Minggu' is replaced with 'Ahad' for Saffa client preference
-      dateStr = dateStr.replace(/Minggu/i, 'Ahad');
-      return dateStr;
-    } catch (e) {
-      // Fallback
-      return `${getDayNameDisplay()}`;
-    }
+    return formatIndonesianDate(getMenuTargetDate());
   };
 
   // Helper to trigger ordering of a specific category product
@@ -133,10 +160,10 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h3 className="font-display font-extrabold text-xl text-slate-800">
-                  Menu Hari Ini
+                  {viewingDay === 'tomorrow' ? 'Menu Hari Besok' : 'Menu Hari Ini'}
                 </h3>
-                <span className="bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs sm:text-sm px-3.5 py-1.5 rounded-full font-extrabold shadow-xs flex items-center gap-1.5 animate-pulse">
-                  <span>📅</span>
+                <span className={`bg-gradient-to-r ${viewingDay === 'tomorrow' ? 'from-emerald-500 to-teal-500' : 'from-pink-500 to-rose-500'} text-white text-xs sm:text-sm px-3.5 py-1.5 rounded-full font-extrabold shadow-xs flex items-center gap-1.5 animate-pulse`}>
+                  <span>{viewingDay === 'tomorrow' ? '🌙' : '📅'}</span>
                   <span>{getIndonesianDateToday()}</span>
                 </span>
               </div>
@@ -149,7 +176,128 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4" id="daily-menu-grid">
+          <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+            
+            {/* Column 1: Status Panel */}
+            <div className="w-full lg:w-72 xl:w-80 shrink-0 bg-white border border-slate-100 rounded-[2rem] p-5 shadow-xs flex flex-col justify-between" id="schedule-status-panel">
+              <div className="space-y-5">
+                <div className="pb-4 border-b border-slate-100">
+                  <div className="flex items-center gap-2 text-emerald-600 font-bold text-xs uppercase tracking-wider">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                    Status Operasional
+                  </div>
+                  <h4 className="font-display font-black text-slate-800 text-lg mt-1">
+                    Jadwal Menu Saffa
+                  </h4>
+                  <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed font-medium">
+                    Sistem otomatis memperbarui tampilan menu pada pukul <span className="font-bold text-slate-700">19.00 WIB</span> setiap malam.
+                  </p>
+                </div>
+
+                {/* Interactive Toggles */}
+                <div className="space-y-2.5">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block mb-1">Pilih Tampilan Menu:</span>
+                  
+                  {/* Button Today */}
+                  <button
+                    type="button"
+                    onClick={() => setViewingDay('today')}
+                    className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-center justify-between group cursor-pointer ${
+                      viewingDay === 'today'
+                        ? 'bg-pink-50 border-pink-200 shadow-xs ring-2 ring-pink-100'
+                        : 'bg-slate-50/50 border-slate-200/50 hover:bg-slate-50'
+                    }`}
+                    id="btn-view-today"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl transition-colors ${
+                        viewingDay === 'today' ? 'bg-pink-500 text-white' : 'bg-slate-200/60 text-slate-500'
+                      }`}>
+                        <span>☀️</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-slate-800">Menu Hari Ini</span>
+                          {new Date().getHours() < 19 && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Default Berjalan" />
+                          )}
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">
+                          {formatIndonesianDate(getTodayDate()).split(',')[1] || formatIndonesianDate(getTodayDate())}
+                        </span>
+                      </div>
+                    </div>
+                    {viewingDay === 'today' && (
+                      <div className="w-5 h-5 rounded-full bg-pink-500 text-white flex items-center justify-center text-[10px] font-bold">
+                        <Check size={11} strokeWidth={3} />
+                      </div>
+                    )}
+                  </button>
+
+                  {/* Button Tomorrow */}
+                  <button
+                    type="button"
+                    onClick={() => setViewingDay('tomorrow')}
+                    className={`w-full text-left p-3.5 rounded-2xl border transition-all flex items-center justify-between group cursor-pointer ${
+                      viewingDay === 'tomorrow'
+                        ? 'bg-emerald-50 border-emerald-200 shadow-xs ring-2 ring-emerald-100'
+                        : 'bg-slate-50/50 border-slate-200/50 hover:bg-slate-50'
+                    }`}
+                    id="btn-view-tomorrow"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-xl transition-colors ${
+                        viewingDay === 'tomorrow' ? 'bg-emerald-500 text-white' : 'bg-slate-200/60 text-slate-500'
+                      }`}>
+                        <span>🌙</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-black text-slate-800">Menu Besok</span>
+                          {new Date().getHours() >= 19 && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Default Berjalan" />
+                          )}
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-400 block mt-0.5">
+                          {formatIndonesianDate(getTomorrowDate()).split(',')[1] || formatIndonesianDate(getTomorrowDate())}
+                        </span>
+                      </div>
+                    </div>
+                    {viewingDay === 'tomorrow' && (
+                      <div className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-bold">
+                        <Check size={11} strokeWidth={3} />
+                      </div>
+                    )}
+                  </button>
+                </div>
+
+                {/* Explanation Card */}
+                <div className="bg-slate-50/70 rounded-2xl p-3.5 border border-slate-100 text-[10.5px] leading-relaxed text-slate-500 space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-slate-700">
+                    <span>⏰</span>
+                    <span>Sistem Auto-Switch 19.00</span>
+                  </div>
+                  <p>
+                    {new Date().getHours() >= 19 ? (
+                      <>
+                        Sudah melewati pukul <span className="font-bold text-slate-700">19.00 WIB</span>. Menu default otomatis beralih ke <span className="font-bold text-emerald-600">Menu Hari Esok</span> agar Bunda dapat melakukan <span className="font-semibold text-slate-700">Pre-Order</span> lebih awal dengan tenang.
+                      </>
+                    ) : (
+                      <>
+                        Tampilan default saat ini adalah <span className="font-bold text-pink-600">Menu Hari Ini</span>. Apabila melewati pukul <span className="font-bold text-slate-700">19.00 WIB</span> nanti malam, menu default otomatis berganti ke menu hari esok.
+                      </>
+                    )}
+                  </p>
+                  <p className="text-[10px] text-pink-500 font-bold italic pt-1 border-t border-slate-100 mt-1">
+                    * Sangat disarankan pesan malam ini agar tidak kehabisan menu segar si kecil besok pagi!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Column 2: Menu Grid */}
+            <div className="flex-grow">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3.5" id="daily-menu-grid">
             
             {/* 1. Bubur Halus Menu 1 */}
             <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow">
@@ -343,6 +491,9 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                   <ShoppingBag size={11} />
                   Pesan
                 </button>
+              </div>
+            </div>
+
               </div>
             </div>
 
