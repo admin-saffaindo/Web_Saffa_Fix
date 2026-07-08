@@ -51,10 +51,10 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
     setIsLoading(false);
   };
 
-  // Set up viewingDay: defaults to 'tomorrow' if after 19:00, otherwise 'today'
+  // Set up viewingDay: defaults to 'tomorrow' if after 12:00, otherwise 'today'
   const [viewingDay, setViewingDay] = useState<'today' | 'tomorrow'>(() => {
     const hour = new Date().getHours();
-    return hour >= 19 ? 'tomorrow' : 'today';
+    return hour >= 12 ? 'tomorrow' : 'today';
   });
 
   const getTodayDate = (): Date => {
@@ -190,7 +190,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                     Jadwal Menu Saffa
                   </h4>
                   <p className="text-[11px] text-slate-400 mt-0.5 leading-relaxed font-medium">
-                    Sistem otomatis memperbarui tampilan menu pada pukul <span className="font-bold text-slate-700">19.00 WIB</span> setiap malam.
+                    Sistem otomatis memperbarui tampilan menu pada pukul <span className="font-bold text-slate-700">12.00 WIB</span> siang setiap hari.
                   </p>
                 </div>
 
@@ -218,7 +218,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-black text-slate-800">Menu Hari Ini</span>
-                          {new Date().getHours() < 19 && (
+                          {new Date().getHours() < 12 && (
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Default Berjalan" />
                           )}
                         </div>
@@ -254,7 +254,7 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs font-black text-slate-800">Menu Besok</span>
-                          {new Date().getHours() >= 19 && (
+                          {new Date().getHours() >= 12 && (
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="Default Berjalan" />
                           )}
                         </div>
@@ -275,16 +275,16 @@ export default function DailyMenuSection({ onSelectProduct }: DailyMenuSectionPr
                 <div className="bg-slate-50/70 rounded-2xl p-3.5 border border-slate-100 text-[10.5px] leading-relaxed text-slate-500 space-y-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-slate-700">
                     <span>⏰</span>
-                    <span>Sistem Auto-Switch 19.00</span>
+                    <span>Sistem Auto-Switch 12.00</span>
                   </div>
                   <p>
-                    {new Date().getHours() >= 19 ? (
+                    {new Date().getHours() >= 12 ? (
                       <>
-                        Sudah melewati pukul <span className="font-bold text-slate-700">19.00 WIB</span>. Menu default otomatis beralih ke <span className="font-bold text-emerald-600">Menu Hari Esok</span> agar Bunda dapat melakukan <span className="font-semibold text-slate-700">Pre-Order</span> lebih awal dengan tenang.
+                        Sudah melewati pukul <span className="font-bold text-slate-700">12.00 WIB</span> siang. Karena operasional hari ini sudah tutup, menu default otomatis beralih ke <span className="font-bold text-emerald-600">Menu Hari Esok</span> agar Bunda dapat melakukan <span className="font-semibold text-slate-700">Pre-Order</span> lebih awal dengan tenang.
                       </>
                     ) : (
                       <>
-                        Tampilan default saat ini adalah <span className="font-bold text-pink-600">Menu Hari Ini</span>. Apabila melewati pukul <span className="font-bold text-slate-700">19.00 WIB</span> nanti malam, menu default otomatis berganti ke menu hari esok.
+                        Tampilan default saat ini adalah <span className="font-bold text-pink-600">Menu Hari Ini</span>. Apabila melewati pukul <span className="font-bold text-slate-700">12.00 WIB</span> siang, menu default otomatis berganti ke menu hari esok.
                       </>
                     )}
                   </p>

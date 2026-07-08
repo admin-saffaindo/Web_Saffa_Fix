@@ -36,10 +36,10 @@ export default function RunningMenuTicker() {
         }
       }
 
-      // 2. Identify Today's or Tomorrow's Menu depending on time (> 19:00)
+      // 2. Identify Today's or Tomorrow's Menu depending on time (> 12:00)
       const now = new Date();
       let targetDate = now;
-      if (now.getHours() >= 19) {
+      if (now.getHours() >= 12) {
         targetDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
       }
       // Date.getDay() returns 0 for Sunday (Ahad), 1 for Monday (Senin), ..., 6 for Saturday (Sabtu)
@@ -73,7 +73,7 @@ export default function RunningMenuTicker() {
       const indonesianDays = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
       const now = new Date();
       let targetDate = now;
-      if (now.getHours() >= 19) {
+      if (now.getHours() >= 12) {
         targetDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
       }
       const dayIndex = targetDate.getDay();

@@ -71,7 +71,53 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
 
   // Daily Menus State
   const [dailyMenus, setDailyMenus] = useState<DailyMenu[]>([]);
-  const [selectedMenuDayId, setSelectedMenuDayId] = useState<string>('day-1');
+  
+  const getTodayMenuId = (): string => {
+    const dayIndex = new Date().getDay(); // 0 is Sunday, 1 is Monday...
+    const saffaIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Saffa indexing: Mon=0, Tue=1, ..., Sun=6
+    return `day-${saffaIndex + 1}`;
+  };
+
+  const getTomorrowMenuId = (): string => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const dayIndex = tomorrow.getDay();
+    const saffaIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+    return `day-${saffaIndex + 1}`;
+  };
+
+  const getChronologicalMenus = (): { menu: DailyMenu; dateLabel: string; isToday: boolean; isTomorrow: boolean; dayNameDisplay: string }[] => {
+    const result = [];
+    const indonesianMonths = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    
+    for (let i = 0; i < 7; i++) {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + i);
+      
+      const dayIndex = targetDate.getDay();
+      const saffaIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+      const menuId = `day-${saffaIndex + 1}`;
+      
+      const menu = dailyMenus.find(m => m.id === menuId) || DEFAULT_DAILY_MENUS[saffaIndex];
+      const dateLabel = `${targetDate.getDate()} ${indonesianMonths[targetDate.getMonth()]}`;
+      const indonesianDays = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+      const dayNameDisplay = indonesianDays[dayIndex];
+      
+      result.push({
+        menu,
+        dateLabel,
+        isToday: i === 0,
+        isTomorrow: i === 1,
+        dayNameDisplay
+      });
+    }
+    return result;
+  };
+
+  const [selectedMenuDayId, setSelectedMenuDayId] = useState<string>(getTodayMenuId);
   const [isSavingMenus, setIsSavingMenus] = useState<boolean>(false);
   const [menuStatusMessage, setMenuStatusMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [startDateInput, setStartDateInput] = useState<string>(() => {
@@ -114,7 +160,29 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
         console.error(e);
       }
     }
-    setDailyMenus(initialMenus);
+
+    const indonesianMonths = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    
+    // Auto-update dates for initialMenus for the upcoming week
+    const syncedMenus = initialMenus.map(m => {
+      for (let i = 0; i < 7; i++) {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + i);
+        const dayIndex = targetDate.getDay();
+        const saffaIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+        const targetDayId = `day-${saffaIndex + 1}`;
+        if (m.id === targetDayId) {
+          const dateLabel = `${targetDate.getDate()} ${indonesianMonths[targetDate.getMonth()]}`;
+          return { ...m, dateLabel };
+        }
+      }
+      return m;
+    });
+
+    setDailyMenus(syncedMenus);
 
     if (!targetUrl || !targetUrl.startsWith('http')) return;
 
@@ -123,8 +191,22 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
-          setDailyMenus(data);
-          localStorage.setItem('saffa_daily_menus_v2', JSON.stringify(data));
+          const syncedFetched = data.map(m => {
+            for (let i = 0; i < 7; i++) {
+              const targetDate = new Date();
+              targetDate.setDate(targetDate.getDate() + i);
+              const dayIndex = targetDate.getDay();
+              const saffaIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+              const targetDayId = `day-${saffaIndex + 1}`;
+              if (m.id === targetDayId) {
+                const dateLabel = `${targetDate.getDate()} ${indonesianMonths[targetDate.getMonth()]}`;
+                return { ...m, dateLabel };
+              }
+            }
+            return m;
+          });
+          setDailyMenus(syncedFetched);
+          localStorage.setItem('saffa_daily_menus_v2', JSON.stringify(syncedFetched));
         }
       }
     } catch (error) {
@@ -186,6 +268,45 @@ export default function AdminDashboard({ onBackToWebsite }: AdminDashboardProps)
     setTimeout(() => {
       setMenuStatusMessage(null);
     }, 5000);
+  };
+
+  // Automatically sync today's and tomorrow's dates based on real current time
+  const handleSyncRealDates = () => {
+    const indonesianMonths = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+
+    setDailyMenus(prev => {
+      const updated = [...prev];
+      for (let i = 0; i < 7; i++) {
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + i);
+        
+        const dayIndex = targetDate.getDay(); // 0 is Sunday, 1 is Monday...
+        const saffaIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Saffa indexing: Mon=0, Tue=1, ..., Sun=6
+        const dayId = `day-${saffaIndex + 1}`;
+        
+        const dateLabel = `${targetDate.getDate()} ${indonesianMonths[targetDate.getMonth()]}`;
+        
+        const menuIdx = updated.findIndex(m => m.id === dayId);
+        if (menuIdx !== -1) {
+          updated[menuIdx] = {
+            ...updated[menuIdx],
+            dateLabel: dateLabel
+          };
+        }
+      }
+      return updated;
+    });
+
+    setMenuStatusMessage({
+      type: 'success',
+      text: `📅 Berhasil mensinkronkan tanggal untuk 7 hari ke depan secara otomatis!`
+    });
+    setTimeout(() => {
+      setMenuStatusMessage(null);
+    }, 4000);
   };
 
   // Handler to update a single field in a specific day's menu
@@ -1099,53 +1220,85 @@ function doGet(e) {
               </div>
             )}
 
-            {/* Automatic Date Helper */}
-            <div className="mx-6 mt-4 p-4 bg-pink-50/20 border border-pink-100/50 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            {/* Automatic Date Helper - Sync for 1 week ahead */}
+            <div className="mx-6 mt-4 p-4 bg-emerald-50/40 border border-emerald-100 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-pink-100 text-pink-700 text-[9px] font-black uppercase tracking-wider">
-                    ⚡ TIPS PRAKTIS
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase tracking-wider">
+                    ✨ FITUR OTOMATIS
                   </span>
-                  <h3 className="text-xs font-extrabold text-slate-800">Ubah Semua Tanggal Otomatis</h3>
+                  <h3 className="text-xs font-extrabold text-slate-800">Sinkronisasi Tanggal Otomatis</h3>
                 </div>
-                <p className="text-[11px] text-slate-400">Pilih tanggal mana saja, sistem akan mencari hari Senin dari minggu tersebut dan mengurutkan Senin s/d Minggu agar hari dan tanggal selalu sinkron sesuai kalender asli.</p>
+                <p className="text-[11px] text-slate-400">Atur tanggal Hari Ini s/d 1 minggu ke depan secara otomatis agar sesuai dengan kalender real-time saat ini.</p>
               </div>
-              <div className="flex items-center gap-2 w-full md:w-auto shrink-0">
-                <input
-                  type="date"
-                  value={startDateInput}
-                  onChange={(e) => setStartDateInput(e.target.value)}
-                  className="w-full md:w-auto bg-white border border-slate-200 text-slate-700 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-pink-400 font-bold shadow-xs cursor-pointer"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleAutoSetDates(startDateInput)}
-                  className="bg-pink-500 hover:bg-pink-600 active:scale-95 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1 shrink-0"
-                >
-                  Terapkan Tanggal
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={handleSyncRealDates}
+                className="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all shadow-xs hover:shadow-md cursor-pointer flex items-center gap-1.5 shrink-0"
+              >
+                📅 Sinkronkan Tanggal Kalender
+              </button>
             </div>
 
-            {/* Day Selector Tabs */}
-            <div className="flex flex-wrap gap-2 px-6 pt-4 justify-start md:justify-center border-b border-slate-100 pb-4 bg-slate-50/50">
-              {dailyMenus.map((day) => {
-                const isActive = day.id === selectedMenuDayId;
-                return (
-                  <button
-                    key={day.id}
-                    onClick={() => setSelectedMenuDayId(day.id)}
-                    type="button"
-                    className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer border ${
-                      isActive
-                        ? 'bg-pink-500 border-pink-500 text-white shadow-sm font-extrabold scale-105'
-                        : 'bg-white border-slate-200 text-slate-600 hover:bg-pink-50/30 hover:border-pink-300 hover:text-pink-600'
-                    }`}
-                  >
-                    📅 {day.dayName} {day.dateLabel ? `(${day.dateLabel})` : ''}
-                  </button>
-                );
-              })}
+            {/* Day Selector Tabs for 7 days ahead (1 week) */}
+            <div className="px-6 pt-4 border-b border-slate-100 pb-6 bg-slate-50/50">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 block mb-3 text-center sm:text-left">
+                Pilih Tanggal Untuk Edit Menu (Maksimal 1 Minggu ke Depan):
+              </span>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                {getChronologicalMenus().map(({ menu, dateLabel, isToday, isTomorrow, dayNameDisplay }) => {
+                  const isActive = menu.id === selectedMenuDayId;
+                  
+                  return (
+                    <button
+                      key={menu.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedMenuDayId(menu.id);
+                        // Ensure the menu's dateLabel matches the calculated dateLabel
+                        if (menu.dateLabel !== dateLabel) {
+                          handleUpdateMenuField(menu.id, 'dateLabel', dateLabel);
+                        }
+                      }}
+                      className={`text-left p-3 rounded-2xl border transition-all flex flex-col justify-between group cursor-pointer ${
+                        isActive
+                          ? isToday
+                            ? 'bg-pink-50 border-pink-300 shadow-sm ring-2 ring-pink-100'
+                            : isTomorrow
+                              ? 'bg-emerald-50 border-emerald-300 shadow-sm ring-2 ring-emerald-100'
+                              : 'bg-indigo-50 border-indigo-300 shadow-sm ring-2 ring-indigo-100'
+                          : 'bg-white border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <span className={`text-[9px] font-black tracking-wider uppercase ${
+                          isActive 
+                            ? isToday ? 'text-pink-600' : isTomorrow ? 'text-emerald-700' : 'text-indigo-600'
+                            : 'text-slate-400'
+                        }`}>
+                          {isToday ? 'Hari Ini' : isTomorrow ? 'Besok' : dayNameDisplay}
+                        </span>
+                        {isActive && (
+                          <span className={`w-1.5 h-1.5 rounded-full ${isToday ? 'bg-pink-500' : isTomorrow ? 'bg-emerald-500' : 'bg-indigo-500'}`} />
+                        )}
+                      </div>
+                      
+                      <div className="mt-2">
+                        <span className="text-xs font-black text-slate-800 block">
+                          {dayNameDisplay}
+                        </span>
+                        <span className={`text-[10px] font-bold block mt-0.5 ${
+                          isActive 
+                            ? isToday ? 'text-pink-500' : isTomorrow ? 'text-emerald-600' : 'text-indigo-500'
+                            : 'text-slate-400'
+                        }`}>
+                          {menu.dateLabel || dateLabel}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {(() => {
@@ -1162,10 +1315,7 @@ function doGet(e) {
                   {/* Selected Day Banner */}
                   <div className="bg-pink-50/40 border border-pink-100/50 p-4 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <h3 className="text-sm font-extrabold text-slate-800">
-                        Sedang Mengedit: Hari <span className="text-pink-500 font-black">{activeEditingMenu.dayName}</span>
-                      </h3>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Semua perubahan harian akan disimpan serentak saat menekan tombol simpan.</p>
+                      <p className="text-[11px] font-bold text-slate-500">Semua perubahan harian akan disimpan serentak saat menekan tombol simpan.</p>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                       <label className="text-xs font-bold text-slate-600 shrink-0">Tanggal / Info:</label>
